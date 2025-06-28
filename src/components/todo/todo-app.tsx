@@ -6,10 +6,11 @@ import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { WeedoLogo } from '@/components/icons';
 
 type TodoAppProps = {
   name: string;
@@ -162,9 +163,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
        {showConfetti && <Confetti onComplete={() => setShowConfetti(false)} />}
       <header className="flex justify-between items-center mb-6 py-4">
-        <h1 className="text-3xl font-bold text-foreground">
-          Hi, {name}!
-        </h1>
+        <WeedoLogo className="w-8 h-8 text-primary" />
         <div className="flex items-center gap-2">
             {viewMode === 'day' && (
               <motion.button
@@ -190,6 +189,11 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                 </motion.div>
               </motion.button>
             )}
+             <motion.div variants={tapAnimationVariants} initial="rest" whileHover="hover" whileTap="tap">
+                <Button variant="ghost" size="icon" aria-label="Settings">
+                    <Settings className="h-5 w-5" />
+                </Button>
+            </motion.div>
             <motion.div variants={tapAnimationVariants} initial="rest" whileHover="hover" whileTap="tap">
               <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
                 <LogOut className="h-5 w-5" />
