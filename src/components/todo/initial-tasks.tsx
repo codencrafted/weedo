@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import type { Task } from '@/lib/types';
+import { addDays, startOfDay } from 'date-fns';
 
 type InitialTasksProps = {
   name: string;
@@ -19,13 +20,31 @@ export default function InitialTasks({ name, onTasksSet }: InitialTasksProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const taskLines = tasksInput.split('\n').filter(line => line.trim() !== '');
-    const newTasks: Task[] = taskLines.map(text => ({
-      id: crypto.randomUUID(),
-      text,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    }));
-    onTasksSet(newTasks);
+
+    if (taskLines.length === 0) {
+      onTasksSet([]);
+      return;
+    }
+
+    const today = startOfDay(new Date());
+    const dates = [
+      today,
+      addDays(today, 1),
+      addDays(today, 2),
+    ];
+
+    const allNewTasks: Task[] = [];
+    dates.forEach(date => {
+      const dailyTasks: Task[] = taskLines.map(text => ({
+        id: crypto.randomUUID(),
+        text,
+        completed: false,
+        createdAt: date.toISOString(),
+      }));
+      allNewTasks.push(...dailyTasks);
+    });
+    
+    onTasksSet(allNewTasks);
   };
 
   return (
@@ -41,9 +60,9 @@ export default function InitialTasks({ name, onTasksSet }: InitialTasksProps) {
             <CardHeader className="text-center">
               <CardTitle>Welcome, {name}!</CardTitle>
               <CardDescription>
-                Let's get your day started. List a few tasks you want to accomplish today.
+                Let's get your week started. List a few tasks you want to accomplish.
                 <br />
-                You can add more later!
+                They'll be added for today, tomorrow, and the day after. You can add more later!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
