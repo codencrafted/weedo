@@ -185,16 +185,25 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
                         <ChevronLeft />
                     </Button>
-                    <h2 
-                      className="text-2xl font-bold text-center cursor-pointer hover:underline"
-                      onClick={() => {
-                        setSlideDirection(0);
-                        setCenterDate(startOfDay(new Date()))
-                      }}
-                      title="Go to Today"
-                    >
-                        {formatDateHeader(centerDate)}
-                    </h2>
+                    <div className="relative h-8 flex items-center justify-center overflow-hidden">
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.h2
+                          key={centerDate.toISOString()}
+                          className="text-2xl font-bold text-center cursor-pointer hover:underline"
+                          onClick={() => {
+                            setSlideDirection(0);
+                            setCenterDate(startOfDay(new Date()))
+                          }}
+                          title="Go to Today"
+                          initial={{ opacity: 0, x: slideDirection * 50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -slideDirection * 50 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        >
+                            {formatDateHeader(centerDate)}
+                        </motion.h2>
+                      </AnimatePresence>
+                    </div>
                     <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
                         <ChevronRight />
                     </Button>
