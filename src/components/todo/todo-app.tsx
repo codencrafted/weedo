@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Settings, LineChart } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -192,6 +193,18 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                 initial="rest"
                 whileHover="hover"
                 whileTap="tap"
+                onClick={() => router.push('/analytics')}
+                className="cursor-pointer"
+             >
+                <Button variant="ghost" size="icon" aria-label="Analytics" className="hover:bg-transparent">
+                    <LineChart className="h-5 w-5" />
+                </Button>
+            </motion.div>
+             <motion.div
+                variants={navButtonVariants}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
                 onClick={() => router.push('/settings')}
                 className="cursor-pointer"
              >
@@ -293,3 +306,4 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     </div>
   );
 }
+
