@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import NamePrompt from '@/components/todo/name-prompt';
 import TodoApp from '@/components/todo/todo-app';
 import InitialTasks from '@/components/todo/initial-tasks';
-import { Skeleton } from '@/components/ui/skeleton';
-import { WeedoLogo } from '@/components/icons';
 import type { Task } from '@/lib/types';
+import { TypewriterAnimation } from '@/components/todo/typewriter-animation';
 
 type View = 'loading' | 'name' | 'tasks' | 'app';
 
@@ -61,18 +60,7 @@ export default function Home() {
   };
 
   if (view === 'loading') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <div className="w-full max-w-md p-8 space-y-6">
-          <div className="flex justify-center mb-4">
-             <WeedoLogo className="w-16 h-16 text-primary" />
-          </div>
-          <Skeleton className="h-8 w-1/2 mx-auto" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-10 w-24 mx-auto" />
-        </div>
-      </div>
-    );
+    return <TypewriterAnimation />;
   }
 
   return (
