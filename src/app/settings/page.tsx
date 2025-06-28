@@ -1,14 +1,47 @@
+
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+const getInitials = (name: string | null): string => {
+    if (!name) return '';
+    const names = name.trim().split(' ').filter(n => n);
+    if (names.length === 0) return '';
+    if (names.length === 1) {
+        return names[0].charAt(0).toUpperCase();
+    }
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+};
 
 export default function SettingsPage() {
   const router = useRouter();
+  const [name, setName] = useState<string | null>(null);
+  const [initials, setInitials] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const storedName = localStorage.getItem('weedo-name');
+      if (storedName) {
+        setName(storedName);
+        setInitials(getInitials(storedName));
+      }
+    } catch (error) {
+      console.error("Could not access local storage", error);
+    } finally {
+        setIsLoading(false);
+    }
+  }, []);
+
 
   const handleLogout = () => {
     try {
@@ -62,11 +95,25 @@ export default function SettingsPage() {
 
         <motion.div variants={itemVariants}>
           <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
+            <CardHeader className="items-center text-center">
+               {isLoading ? (
+                <>
+                    <Skeleton className="h-24 w-24 rounded-full" />
+                    <Skeleton className="h-6 w-32 mt-4" />
+                    <Skeleton className="h-4 w-48 mt-2" />
+                </>
+              ) : (
+                <>
+                  <Avatar className="h-24 w-24 mb-4 text-3xl">
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                  <CardTitle>{name}</CardTitle>
+                  <CardDescription>Manage your account settings.</CardDescription>
+                </>
+              )}
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mt-4">
                  <Button
                     variant="ghost"
                     className="w-full justify-start text-base hover:bg-transparent text-destructive hover:text-destructive"
