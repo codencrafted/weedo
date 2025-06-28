@@ -8,14 +8,17 @@ import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
 import CoffeeAnimation from './coffee-animation';
+import { SausageDogAnimation } from './sausage-dog-animation';
+import { isAfter, startOfDay } from 'date-fns';
 
 type TaskListProps = {
   tasks: Task[];
   onToggleTask: (id: string) => void;
   isLoading: boolean;
+  centerDate: Date;
 };
 
-export default function TaskList({ tasks, onToggleTask, isLoading }: TaskListProps) {
+export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }: TaskListProps) {
   
   if (isLoading) {
     return (
@@ -34,6 +37,12 @@ export default function TaskList({ tasks, onToggleTask, isLoading }: TaskListPro
   }
 
   if (tasks.length === 0) {
+    const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
+
+    if (isFutureDate) {
+      return <SausageDogAnimation />;
+    }
+
     return (
       <Card>
         <CardContent className="p-10">

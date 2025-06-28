@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Settings, LineChart } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { WeedoLogo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 
@@ -64,10 +63,12 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   const toggleTask = (id: string) => {
     const taskToToggle = tasks.find(t => t.id === id);
     if (taskToToggle && !taskToToggle.completed) {
-      const allTasksWillBeCompleted = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate) && !t.completed).length === 1;
-       if (allTasksWillBeCompleted) {
-        setShowConfetti(true);
-       }
+      const allTasksForDay = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate));
+      const completedTasksForDay = allTasksForDay.filter(t => t.completed).length;
+      
+      if (completedTasksForDay + 1 === allTasksForDay.length) {
+         setShowConfetti(true);
+      }
     }
     setTasks(tasks.map(task =>
       task.id === id ? { ...task, completed: !task.completed } : task
@@ -208,7 +209,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                     exit={{ opacity: 0, x: -slideDirection * 30 }}
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
+                    <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} centerDate={centerDate} />
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
@@ -220,5 +221,3 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     </div>
   );
 }
-
-
