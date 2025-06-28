@@ -1,24 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Task } from '@/lib/types';
 import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut } from 'lucide-react';
-import { isSameDay, startOfDay, parseISO, subDays, addDays } from 'date-fns';
+import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 
 type TodoAppProps = {
   name: string;
   onLogout: () => void;
 };
 
+const formatDateHeader = (date: Date): string => {
+    if (isToday(date)) return "Today";
+    if (isYesterday(date)) return "Yesterday";
+    if (isTomorrow(date)) return "Tomorrow";
+    return format(date, 'EEE, MMM d');
+};
+
+
 export default function TodoApp({ name, onLogout }: TodoAppProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
 
   useEffect(() => {
     let initialTasks: Task[] = [];
@@ -35,7 +43,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
     if (initialTasks.length === 0) {
       const now = new Date();
       initialTasks = [
-        { id: crypto.randomUUID(), text: 'Review project proposal', completed: true, createdAt: subDays(now, 2).toISOString() },
+        { id: crypto.randomUUID(), text: 'Review project proposal', completed: true, createdAt: subDays(now, 1).toISOString() },
         { id: crypto.randomUUID(), text: 'Call the vet', completed: false, createdAt: subDays(now, 1).toISOString() },
         { id: crypto.randomUUID(), text: 'Finish the design mockups', completed: false, createdAt: now.toISOString() },
         { id: crypto.randomUUID(), text: 'Go for a run', completed: true, createdAt: now.toISOString() },
@@ -75,48 +83,42 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       id: crypto.randomUUID(),
       text,
       completed: false,
-      createdAt: new Date().toISOString(),
+      createdAt: centerDate.toISOString(),
     };
     setTasks([newTask, ...tasks]);
   };
 
-  const categorizedTasks = useMemo(() => {
-    const categories: { [key: string]: Task[] } = {
-        yesterday: [],
-        today: [],
-        tomorrow: [],
-        upcoming: [],
-    };
+  const visibleDates = [
+      subDays(centerDate, 1),
+      centerDate,
+      addDays(centerDate, 1)
+  ];
 
-    const now = startOfDay(new Date());
-    const tomorrowDate = addDays(now, 1);
-
-    tasks.forEach(task => {
+  const dailyTasks = visibleDates.map(date => 
+    tasks
+      .filter(task => {
         try {
-            const taskDate = startOfDay(parseISO(task.createdAt));
-            if (isSameDay(taskDate, now)) {
-                categories.today.push(task);
-            } else if (isSameDay(taskDate, tomorrowDate)) {
-                categories.tomorrow.push(task);
-            } else if (taskDate < now) {
-                categories.yesterday.push(task);
-            } else {
-                categories.upcoming.push(task);
-            }
+          return isSameDay(parseISO(task.createdAt), date);
         } catch {
-            categories.today.push(task);
+          return false;
         }
-    });
+      })
+      .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1)
+  );
 
-    for (const key in categories) {
-        categories[key].sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+  const handleHeaderClick = (index: number) => {
+    if (index === 0) {
+        setCenterDate(subDays(centerDate, 1));
+    } else if (index === 1) {
+        setCenterDate(startOfDay(new Date()));
+    } else if (index === 2) {
+        setCenterDate(addDays(centerDate, 1));
     }
+  };
 
-    return categories;
-  }, [tasks]);
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
        {showConfetti && <Confetti onComplete={() => setShowConfetti(false)} />}
       <header className="flex justify-between items-center mb-6 py-4">
         <h1 className="text-3xl font-bold text-foreground">
@@ -127,28 +129,22 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         </Button>
       </header>
       
-        <Tabs defaultValue="today" className="w-full flex-grow flex flex-col">
-            <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="yesterday">Yesterday</TabsTrigger>
-                <TabsTrigger value="today">Today</TabsTrigger>
-                <TabsTrigger value="tomorrow">Tomorrow</TabsTrigger>
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            </TabsList>
-             <main className="flex-grow mt-6">
-                <TabsContent value="yesterday">
-                    <TaskList tasks={categorizedTasks.yesterday} onToggleTask={toggleTask} isLoading={isLoading} />
-                </TabsContent>
-                <TabsContent value="today">
-                    <TaskList tasks={categorizedTasks.today} onToggleTask={toggleTask} isLoading={isLoading} />
-                </TabsContent>
-                <TabsContent value="tomorrow">
-                    <TaskList tasks={categorizedTasks.tomorrow} onToggleTask={toggleTask} isLoading={isLoading} />
-                </TabsContent>
-                <TabsContent value="upcoming">
-                    <TaskList tasks={categorizedTasks.upcoming} onToggleTask={toggleTask} isLoading={isLoading} />
-                </TabsContent>
-             </main>
-        </Tabs>
+        <main className="flex-grow mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {visibleDates.map((date, index) => (
+                    <div key={date.toISOString()}>
+                        <h2 
+                            className="text-xl font-bold text-center mb-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                            onClick={() => handleHeaderClick(index)}
+                            title={index === 0 ? "Previous Day" : index === 1 ? "Go to Today" : "Next Day"}
+                        >
+                            {formatDateHeader(date)}
+                        </h2>
+                        <TaskList tasks={dailyTasks[index]} onToggleTask={toggleTask} isLoading={isLoading} />
+                    </div>
+                ))}
+            </div>
+        </main>
 
       <footer className="mt-auto pt-8">
         <TaskForm onAddTask={addTask} />
