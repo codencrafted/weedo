@@ -8,6 +8,7 @@ import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
 import { LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type TodoAppProps = {
   name: string;
@@ -144,47 +145,73 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       </header>
       
         <main className="flex-grow mt-6">
-          {viewMode === 'week' ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {visibleDates.map((date, index) => (
-                    <div key={date.toISOString()}>
-                        <h2 
-                            className="text-xl font-bold text-center mb-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                            onClick={() => handleHeaderClick(date)}
-                            title={`View tasks for ${format(date, 'PPP')}`}
-                        >
-                            {formatDateHeader(date)}
-                        </h2>
-                        <TaskList tasks={dailyTasks[index]} onToggleTask={toggleTask} isLoading={isLoading} />
-                    </div>
-                ))}
-            </div>
-          ) : (
-            <div className="max-w-2xl mx-auto">
-              <div className="flex justify-between items-center mb-4">
-                  <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
-                      <ChevronLeft />
-                  </Button>
-                  <h2 
-                    className="text-2xl font-bold text-center cursor-pointer hover:underline"
-                    onClick={() => setCenterDate(startOfDay(new Date()))}
-                    title="Go to Today"
+          <AnimatePresence mode="wait">
+            {viewMode === 'week' ? (
+              <motion.div
+                key="week"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
+              >
+                  {visibleDates.map((date, index) => (
+                      <div key={date.toISOString()}>
+                          <h2 
+                              className="text-xl font-bold text-center mb-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                              onClick={() => handleHeaderClick(date)}
+                              title={`View tasks for ${format(date, 'PPP')}`}
+                          >
+                              {formatDateHeader(date)}
+                          </h2>
+                          <TaskList tasks={dailyTasks[index]} onToggleTask={toggleTask} isLoading={isLoading} />
+                      </div>
+                  ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="day"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-2xl mx-auto"
+              >
+                <div className="flex justify-between items-center mb-4">
+                    <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
+                        <ChevronLeft />
+                    </Button>
+                    <h2 
+                      className="text-2xl font-bold text-center cursor-pointer hover:underline"
+                      onClick={() => setCenterDate(startOfDay(new Date()))}
+                      title="Go to Today"
+                    >
+                        {formatDateHeader(centerDate)}
+                    </h2>
+                    <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
+                        <ChevronRight />
+                    </Button>
+                </div>
+                <div className="flex justify-center mb-6">
+                    <Button variant="ghost" onClick={() => setViewMode('week')}>
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Back to Week View
+                    </Button>
+                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={centerDate.toISOString()}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
                   >
-                      {formatDateHeader(centerDate)}
-                  </h2>
-                  <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
-                      <ChevronRight />
-                  </Button>
-              </div>
-              <div className="flex justify-center mb-6">
-                  <Button variant="ghost" onClick={() => setViewMode('week')}>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Back to Week View
-                  </Button>
-              </div>
-              <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
-            </div>
-          )}
+                    <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
       <footer className="mt-auto pt-8">
