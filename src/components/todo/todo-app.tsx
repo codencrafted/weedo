@@ -188,7 +188,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         </main>
 
       <footer className="mt-auto pt-8">
-        <TaskForm onAddTask={addTask} />
+        {viewMode === 'day' && <TaskForm onAddTask={addTask} />}
       </footer>
     </div>
   );
