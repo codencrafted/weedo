@@ -136,6 +136,26 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       }
   };
 
+  const buttonVariants = {
+    hover: { scale: 1.1 },
+    tap: { scale: 0.95 },
+  };
+
+  const navButtonVariants = {
+    rest: { scale: 1 },
+    hover: { scale: 1.1 },
+    tap: { scale: 0.95 },
+  };
+
+  const leftArrowVariants = {
+    rest: { x: 0 },
+    hover: { x: -2 },
+  };
+
+  const rightArrowVariants = {
+    rest: { x: 0 },
+    hover: { x: 2 },
+  };
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
@@ -144,7 +164,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         <h1 className="text-3xl font-bold text-foreground">
           Hi, {name}!
         </h1>
-        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+        <motion.div variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap">
           <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
             <LogOut className="h-5 w-5" />
           </Button>
@@ -185,12 +205,14 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                 className="max-w-2xl mx-auto"
               >
                 <div className="flex justify-between items-center mb-4">
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
                       <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
-                          <ChevronLeft />
+                          <motion.div variants={leftArrowVariants}>
+                            <ChevronLeft />
+                          </motion.div>
                       </Button>
                     </motion.div>
-                    <div className="relative h-8 w-64 flex items-center justify-center overflow-hidden">
+                    <div className="relative h-10 w-64 flex items-center justify-center overflow-hidden">
                       <AnimatePresence mode="wait" initial={false}>
                         <motion.h2
                           key={centerDate.toISOString()}
@@ -203,15 +225,17 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                           initial={{ opacity: 0, x: slideDirection * 40 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -slideDirection * 40 }}
-                          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                         >
                             {formatDateHeader(centerDate)}
                         </motion.h2>
                       </AnimatePresence>
                     </div>
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
                       <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
-                          <ChevronRight />
+                           <motion.div variants={rightArrowVariants}>
+                            <ChevronRight />
+                          </motion.div>
                       </Button>
                     </motion.div>
                 </div>
