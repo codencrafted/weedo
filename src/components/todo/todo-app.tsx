@@ -29,6 +29,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
   const [viewMode, setViewMode] = useState<'week' | 'day'>('day');
+  const [slideDirection, setSlideDirection] = useState(0);
 
   useEffect(() => {
     let initialTasks: Task[] = [];
@@ -119,14 +120,17 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
     .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
 
   const handleHeaderClick = (date: Date) => {
+    setSlideDirection(0);
     setCenterDate(date);
     setViewMode('day');
   };
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
+          setSlideDirection(-1);
           setCenterDate(subDays(centerDate, 1));
       } else {
+          setSlideDirection(1);
           setCenterDate(addDays(centerDate, 1));
       }
   };
@@ -183,7 +187,10 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     </Button>
                     <h2 
                       className="text-2xl font-bold text-center cursor-pointer hover:underline"
-                      onClick={() => setCenterDate(startOfDay(new Date()))}
+                      onClick={() => {
+                        setSlideDirection(0);
+                        setCenterDate(startOfDay(new Date()))
+                      }}
                       title="Go to Today"
                     >
                         {formatDateHeader(centerDate)}
@@ -193,7 +200,10 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     </Button>
                 </div>
                 <div className="flex justify-center mb-6">
-                    <Button variant="ghost" onClick={() => setViewMode('week')}>
+                    <Button variant="ghost" onClick={() => {
+                      setSlideDirection(0);
+                      setViewMode('week');
+                    }}>
                         <Calendar className="mr-2 h-4 w-4" />
                         Back to Week View
                     </Button>
@@ -201,10 +211,10 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={centerDate.toISOString()}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0, x: slideDirection * 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -slideDirection * 30 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
                   >
                     <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
                   </motion.div>
