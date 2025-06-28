@@ -35,16 +35,6 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem('weedo-name');
-      localStorage.removeItem('weedo-tasks');
-      setName(null);
-    } catch (error) {
-      console.error("Could not access local storage", error);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
@@ -62,7 +52,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background font-body">
-      {name ? <TodoApp name={name} onLogout={handleLogout} /> : <NamePrompt onNameSet={handleNameSet} />}
+      {name ? <TodoApp name={name} /> : <NamePrompt onNameSet={handleNameSet} />}
     </main>
   );
 }

@@ -6,15 +6,15 @@ import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { LogOut, ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { WeedoLogo } from '@/components/icons';
+import { useRouter } from 'next/navigation';
 
 type TodoAppProps = {
   name: string;
-  onLogout: () => void;
 };
 
 const formatDateHeader = (date: Date): string => {
@@ -25,7 +25,8 @@ const formatDateHeader = (date: Date): string => {
 };
 
 
-export default function TodoApp({ name, onLogout }: TodoAppProps) {
+export default function TodoApp({ name }: TodoAppProps) {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -167,7 +168,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         <div className="flex items-center gap-2">
             {viewMode === 'day' && (
               <motion.button
-                className={cn(buttonVariants({ variant: 'ghost' }), "relative overflow-hidden gap-0")}
+                className={cn(buttonVariants({ variant: 'ghost' }), "relative overflow-hidden gap-0 hover:bg-transparent")}
                 onClick={() => {
                   setSlideDirection(0);
                   setViewMode('week');
@@ -189,15 +190,17 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                 </motion.div>
               </motion.button>
             )}
-             <motion.div variants={tapAnimationVariants} initial="rest" whileHover="hover" whileTap="tap">
-                <Button variant="ghost" size="icon" aria-label="Settings">
+             <motion.div
+                variants={tapAnimationVariants}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
+                onClick={() => router.push('/settings')}
+                className="cursor-pointer"
+             >
+                <Button variant="ghost" size="icon" aria-label="Settings" className="hover:bg-transparent">
                     <Settings className="h-5 w-5" />
                 </Button>
-            </motion.div>
-            <motion.div variants={tapAnimationVariants} initial="rest" whileHover="hover" whileTap="tap">
-              <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
-                <LogOut className="h-5 w-5" />
-              </Button>
             </motion.div>
         </div>
       </header>
