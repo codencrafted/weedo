@@ -5,10 +5,11 @@ import type { Task } from '@/lib/types';
 import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 type TodoAppProps = {
   name: string;
@@ -166,15 +167,28 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         </h1>
         <div className="flex items-center gap-2">
             {viewMode === 'day' && (
-                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="ghost" onClick={() => {
-                      setSlideDirection(0);
-                      setViewMode('week');
-                    }}>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Week View
-                    </Button>
+              <motion.button
+                className={cn(buttonVariants({ variant: 'ghost' }), "relative overflow-hidden gap-0")}
+                onClick={() => {
+                  setSlideDirection(0);
+                  setViewMode('week');
+                }}
+                initial="rest"
+                whileHover="hover"
+                animate="rest"
+              >
+                <Calendar className="h-4 w-4 shrink-0" />
+                <motion.div
+                    className="overflow-hidden whitespace-nowrap"
+                    variants={{
+                        rest: { width: 0, opacity: 0, marginLeft: 0 },
+                        hover: { width: 'auto', opacity: 1, marginLeft: '0.5rem' }
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                >
+                    Week View
                 </motion.div>
+              </motion.button>
             )}
             <motion.div variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap">
               <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
