@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from 'react';
+import React from 'react';
 import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
-import { isToday, isTomorrow, parseISO } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
+import { Card, CardContent } from '../ui/card';
+import { Separator } from '../ui/separator';
 
 type TaskListProps = {
   tasks: Task[];
@@ -13,68 +14,42 @@ type TaskListProps = {
 };
 
 export default function TaskList({ tasks, onToggleTask, isLoading }: TaskListProps) {
-
-  const categorizedTasks = useMemo(() => {
-    const today: Task[] = [];
-    const tomorrow: Task[] = [];
-    const yesterday: Task[] = [];
-    
-    const now = new Date();
-    tasks.forEach(task => {
-      try {
-        const date = parseISO(task.createdAt);
-        if (isToday(date)) {
-          today.push(task);
-        } else if (isTomorrow(date)) {
-          tomorrow.push(task);
-        } else if (date < now) {
-          yesterday.push(task);
-        }
-      } catch (error) {
-        // Fallback for invalid date
-        today.push(task);
-      }
-    });
-
-    // Sort yesterday's tasks from newest to oldest
-    yesterday.sort((a, b) => parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime());
-
-    return { today, tomorrow, yesterday };
-  }, [tasks]);
   
   if (isLoading) {
     return (
-      <div className="flex justify-around">
-          <div className="w-1/3 px-4 space-y-3" />
-          <div className="w-1/3 px-4 space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="w-1/3 px-4 space-y-3" />
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
       </div>
     );
   }
 
+  if (tasks.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-10">
+          <div className="text-center text-muted-foreground">
+            <p className="text-lg">All clear!</p>
+            <p className="text-sm">No tasks for this day.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="flex justify-around items-start">
-      <div className="w-1/3 px-4 space-y-3">
-        {categorizedTasks.yesterday.map(task => (
-          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
-        ))}
-      </div>
-      <div className="w-1/3 px-4 space-y-3">
-        {categorizedTasks.today.map(task => (
-          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
-        ))}
-      </div>
-      <div className="w-1/3 px-4 space-y-3">
-        {categorizedTasks.tomorrow.map(task => (
-          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardContent className="p-2 md:p-4">
+        <div className="flex flex-col">
+            {tasks.map((task, index) => (
+            <React.Fragment key={task.id}>
+                <TaskItem task={task} onToggle={onToggleTask} />
+                {index < tasks.length - 1 && <Separator />}
+            </React.Fragment>
+            ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

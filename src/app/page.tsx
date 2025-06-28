@@ -62,7 +62,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background font-body">
-      {name ? <TodoApp /> : <NamePrompt onNameSet={handleNameSet} />}
+      {name ? <TodoApp name={name} onLogout={handleLogout} /> : <NamePrompt onNameSet={handleNameSet} />}
     </main>
   );
 }
