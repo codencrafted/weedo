@@ -27,7 +27,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
-  const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
+  const [viewMode, setViewMode] = useState<'week' | 'day'>('day');
 
   useEffect(() => {
     let initialTasks: Task[] = [];
