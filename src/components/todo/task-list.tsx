@@ -7,7 +7,7 @@ import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
-import CoffeeAnimation from './coffee-animation';
+import WaterBreakAnimation from './coffee-animation';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay } from 'date-fns';
 
@@ -33,7 +33,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
 
   if (allTasksCompleted) {
-    return <CoffeeAnimation />;
+    return <WaterBreakAnimation />;
   }
 
   if (tasks.length === 0) {
@@ -70,3 +70,5 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
     </Card>
   );
 }
+
+    
