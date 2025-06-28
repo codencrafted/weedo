@@ -7,7 +7,7 @@ import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Settings, LineChart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, LineChart } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -33,7 +33,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
-  const [viewMode, setViewMode] = useState<'week' | 'day'>('day');
   const [slideDirection, setSlideDirection] = useState(0);
 
   useEffect(() => {
@@ -50,7 +49,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     
     setTasks(initialTasks);
     setIsLoading(false);
-    setViewMode('day'); // Start in day view
   }, []);
 
   useEffect(() => {
@@ -86,34 +84,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     setTasks([newTask, ...tasks]);
   };
 
-  const visibleDates = React.useMemo(() => {
-    if (isFirstSession && viewMode === 'week') {
-      return [
-        centerDate,
-        addDays(centerDate, 1),
-        addDays(centerDate, 2)
-      ];
-    }
-    return [
-      subDays(centerDate, 1),
-      centerDate,
-      addDays(centerDate, 1)
-    ];
-  }, [centerDate, isFirstSession, viewMode]);
-
-
-  const dailyTasks = visibleDates.map(date => 
-    tasks
-      .filter(task => {
-        try {
-          return isSameDay(parseISO(task.createdAt), date);
-        } catch {
-          return false;
-        }
-      })
-      .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1)
-  );
-
   const selectedDayTasks = tasks
     .filter(task => {
       try {
@@ -123,12 +93,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       }
     })
     .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
-
-  const handleHeaderClick = (date: Date) => {
-    setSlideDirection(0);
-    setCenterDate(date);
-    setViewMode('day');
-  };
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -164,30 +128,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       <header className="flex justify-between items-center mb-6 py-4">
         <WeedoLogo className="w-8 h-8 text-primary" />
         <div className="flex items-center gap-2">
-            {viewMode === 'day' && (
-              <motion.button
-                className={cn("relative overflow-hidden gap-0 flex items-center justify-center h-10 px-4 py-2 text-sm font-medium hover:bg-transparent", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50")}
-                onClick={() => {
-                  setSlideDirection(0);
-                  setViewMode('week');
-                }}
-                initial="rest"
-                whileHover="hover"
-                animate="rest"
-              >
-                <Calendar className="h-4 w-4 shrink-0" />
-                <motion.div
-                    className="overflow-hidden whitespace-nowrap"
-                    variants={{
-                        rest: { width: 0, opacity: 0, marginLeft: 0 },
-                        hover: { width: 'auto', opacity: 1, marginLeft: '0.5rem' }
-                    }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                >
-                    Week View
-                </motion.div>
-              </motion.button>
-            )}
              <motion.div
                 variants={navButtonVariants}
                 initial="rest"
@@ -216,31 +156,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       </header>
       
         <main className="flex-grow mt-6">
-          <AnimatePresence mode="wait">
-            {viewMode === 'week' ? (
-              <motion.div
-                key="week"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-6"
-              >
-                  {visibleDates.map((date, index) => (
-                      <div key={date.toISOString()}>
-                          <h2 
-                              className="text-xl font-bold text-center mb-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                              onClick={() => handleHeaderClick(date)}
-                              title={`View tasks for ${format(date, 'PPP')}`}
-                          >
-                              {formatDateHeader(date)}
-                          </h2>
-                          <TaskList tasks={dailyTasks[index]} onToggleTask={toggleTask} isLoading={isLoading} />
-                      </div>
-                  ))}
-              </motion.div>
-            ) : (
-              <motion.div
+            <motion.div
                 key="day"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -296,14 +212,13 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                   </motion.div>
                 </AnimatePresence>
               </motion.div>
-            )}
-          </AnimatePresence>
         </main>
 
       <footer className="mt-auto pt-8">
-        {viewMode === 'day' && <TaskForm onAddTask={addTask} />}
+        <TaskForm onAddTask={addTask} />
       </footer>
     </div>
   );
 }
+
 
