@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -6,6 +7,7 @@ import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
+import CoffeeAnimation from './coffee-animation';
 
 type TaskListProps = {
   tasks: Task[];
@@ -23,6 +25,12 @@ export default function TaskList({ tasks, onToggleTask, isLoading }: TaskListPro
         <Skeleton className="h-12 w-full" />
       </div>
     );
+  }
+
+  const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
+
+  if (allTasksCompleted) {
+    return <CoffeeAnimation />;
   }
 
   if (tasks.length === 0) {

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -89,4 +90,172 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Coffee Animation */
+.coffee-container {
+  width: 150px;
+  height: 200px;
+  position: relative;
+  margin-top: 20px;
+}
+
+.coffee-header {
+  width: 100%;
+  height: 40px;
+  background-color: #333;
+  border-radius: 10px 10px 0 0;
+  position: relative;
+  border-bottom: 5px solid #222;
+}
+
+.coffee-header__buttons {
+  position: absolute;
+  top: 10px;
+  width: 15px;
+  height: 15px;
+  background-color: #555;
+  border-radius: 50%;
+  border: 2px solid #444;
+}
+
+.coffee-header__button-one {
+  left: 15px;
+}
+
+.coffee-header__button-two {
+  left: 40px;
+}
+
+.coffee-header__display {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  width: 40px;
+  height: 20px;
+  background-color: #0c9c24;
+  border-radius: 3px;
+  border: 2px solid #0a7a1d;
+}
+
+.coffee-header__details {
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background-color: #444;
+}
+
+.coffee-medium {
+  width: 100%;
+  height: 100px;
+  background-color: #f1f1f1;
+  position: relative;
+  overflow: hidden;
+}
+
+.coffee-medium__exit {
+  width: 30px;
+  height: 10px;
+  background-color: #333;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 0 0 5px 5px;
+}
+
+.coffee-medium__arm {
+  width: 5px;
+  height: 40px;
+  background-color: #333;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.coffee-medium__cup {
+  width: 50px;
+  height: 45px;
+  background-color: #fff;
+  border: 5px solid #ddd;
+  border-radius: 0 0 25px 25px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.coffee-medium__cup::after {
+  content: '';
+  width: 20px;
+  height: 25px;
+  border: 5px solid #ddd;
+  border-left: none;
+  border-radius: 0 15px 15px 0;
+  position: absolute;
+  top: 5px;
+  right: -25px;
+}
+
+@keyframes liquid-flow {
+  0% { height: 0; }
+  100% { height: 40px; }
+}
+
+.coffee-medium__liquid {
+  width: 3px;
+  background-color: #743e15;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: liquid-flow 2s 1s linear forwards;
+}
+
+@keyframes smoke-up {
+  0% { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+}
+
+.coffee-medium__smoke {
+  width: 8px;
+  height: 10px;
+  background-color: rgba(220, 220, 220, 0.5);
+  border-radius: 50%;
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform-origin: bottom;
+  opacity: 0;
+}
+
+.coffee-medium__smoke-one {
+  transform: translateX(-20px);
+  animation: smoke-up 2.5s 3s linear infinite;
+}
+
+.coffee-medium__smoke-two {
+  transform: translateX(-5px);
+  animation: smoke-up 3s 3.2s linear infinite;
+}
+
+.coffee-medium__smoke-three {
+  transform: translateX(10px);
+  animation: smoke-up 2s 3.5s linear infinite;
+}
+
+.coffee-medium__smoke-four {
+  transform: translateX(25px);
+  animation: smoke-up 3.5s 3.8s linear infinite;
+}
+
+.coffee-footer {
+  width: 100%;
+  height: 10px;
+  background-color: #333;
+  border-radius: 0 0 10px 10px;
 }
