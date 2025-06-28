@@ -5,16 +5,14 @@ import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { isToday, isTomorrow, parseISO } from 'date-fns';
 import { Skeleton } from '../ui/skeleton';
-import { FileText } from 'lucide-react';
 
 type TaskListProps = {
   tasks: Task[];
   onToggleTask: (id: string) => void;
-  onDeleteTask: (id: string) => void;
   isLoading: boolean;
 };
 
-export default function TaskList({ tasks, onToggleTask, onDeleteTask, isLoading }: TaskListProps) {
+export default function TaskList({ tasks, onToggleTask, isLoading }: TaskListProps) {
 
   const categorizedTasks = useMemo(() => {
     const today: Task[] = [];
@@ -44,49 +42,39 @@ export default function TaskList({ tasks, onToggleTask, onDeleteTask, isLoading 
     return { today, tomorrow, yesterday };
   }, [tasks]);
   
-  const renderTaskSection = (title: string, taskList: Task[]) => {
-    if (taskList.length === 0) return null;
-    return (
-      <section className="mb-8" aria-labelledby={title.toLowerCase()}>
-        <h2 id={title.toLowerCase()} className="text-lg font-semibold text-muted-foreground mb-3">{title}</h2>
-        <div className="space-y-3">
-          {taskList.map(task => (
-            <TaskItem key={task.id} task={task} onToggle={onToggleTask} onDelete={onDeleteTask} />
-          ))}
-        </div>
-      </section>
-    );
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-    );
-  }
-
-  const allTasksEmpty = Object.values(categorizedTasks).every(list => list.length === 0);
-
-  if (allTasksEmpty) {
-    return (
-      <div className="text-center py-16 px-4 border-2 border-dashed rounded-lg">
-        <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-xl font-semibold">All clear!</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          You have no tasks. Add one above to get started.
-        </p>
+      <div className="flex justify-around">
+          <div className="w-1/3 px-4 space-y-3" />
+          <div className="w-1/3 px-4 space-y-3">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="w-1/3 px-4 space-y-3" />
       </div>
     );
   }
 
   return (
-    <div>
-      {renderTaskSection('Today', categorizedTasks.today)}
-      {renderTaskSection('Tomorrow', categorizedTasks.tomorrow)}
-      {renderTaskSection('Yesterday', categorizedTasks.yesterday)}
+    <div className="flex justify-around items-start">
+      <div className="w-1/3 px-4 space-y-3">
+        {categorizedTasks.yesterday.map(task => (
+          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
+        ))}
+      </div>
+      <div className="w-1/3 px-4 space-y-3">
+        {categorizedTasks.today.map(task => (
+          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
+        ))}
+      </div>
+      <div className="w-1/3 px-4 space-y-3">
+        {categorizedTasks.tomorrow.map(task => (
+          <TaskItem key={task.id} task={task} onToggle={onToggleTask} />
+        ))}
+      </div>
     </div>
   );
 }
