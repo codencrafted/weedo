@@ -59,6 +59,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
     
     setTasks(initialTasks);
     setIsLoading(false);
+    setViewMode('day');
   }, []);
 
   useEffect(() => {
@@ -185,7 +186,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
                         <ChevronLeft />
                     </Button>
-                    <div className="relative h-8 flex items-center justify-center overflow-hidden">
+                    <div className="relative h-8 flex items-center justify-center">
                       <AnimatePresence mode="wait" initial={false}>
                         <motion.h2
                           key={centerDate.toISOString()}
@@ -195,10 +196,10 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                             setCenterDate(startOfDay(new Date()))
                           }}
                           title="Go to Today"
-                          initial={{ opacity: 0, x: slideDirection * 50 }}
+                          initial={{ opacity: 0, x: slideDirection * 40 }}
                           animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -slideDirection * 50 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          exit={{ opacity: 0, x: -slideDirection * 40 }}
+                          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                         >
                             {formatDateHeader(centerDate)}
                         </motion.h2>
@@ -223,7 +224,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     initial={{ opacity: 0, x: slideDirection * 30 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -slideDirection * 30 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                   >
                     <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
                   </motion.div>
