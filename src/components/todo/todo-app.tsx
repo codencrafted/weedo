@@ -137,7 +137,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       }
   };
 
-  const buttonVariants = {
+  const tapAnimationVariants = {
     hover: { scale: 1.1 },
     tap: { scale: 0.95 },
   };
@@ -190,7 +190,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                 </motion.div>
               </motion.button>
             )}
-            <motion.div variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap">
+            <motion.div variants={tapAnimationVariants} initial="rest" whileHover="hover" whileTap="tap">
               <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
                 <LogOut className="h-5 w-5" />
               </Button>
