@@ -6,7 +6,7 @@ import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 
 type TodoAppProps = {
@@ -27,6 +27,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
+  const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
 
   useEffect(() => {
     let initialTasks: Task[] = [];
@@ -106,14 +107,27 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1)
   );
 
-  const handleHeaderClick = (index: number) => {
-    if (index === 0) {
-        setCenterDate(subDays(centerDate, 1));
-    } else if (index === 1) {
-        setCenterDate(startOfDay(new Date()));
-    } else if (index === 2) {
-        setCenterDate(addDays(centerDate, 1));
-    }
+  const selectedDayTasks = tasks
+    .filter(task => {
+      try {
+        return isSameDay(parseISO(task.createdAt), centerDate);
+      } catch {
+        return false;
+      }
+    })
+    .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+
+  const handleHeaderClick = (date: Date) => {
+    setCenterDate(date);
+    setViewMode('day');
+  };
+
+  const handleDayNavigation = (direction: 'prev' | 'next') => {
+      if (direction === 'prev') {
+          setCenterDate(subDays(centerDate, 1));
+      } else {
+          setCenterDate(addDays(centerDate, 1));
+      }
   };
 
 
@@ -130,13 +144,14 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
       </header>
       
         <main className="flex-grow mt-6">
+          {viewMode === 'week' ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {visibleDates.map((date, index) => (
                     <div key={date.toISOString()}>
                         <h2 
                             className="text-xl font-bold text-center mb-4 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                            onClick={() => handleHeaderClick(index)}
-                            title={index === 0 ? "Previous Day" : index === 1 ? "Go to Today" : "Next Day"}
+                            onClick={() => handleHeaderClick(date)}
+                            title={`View tasks for ${format(date, 'PPP')}`}
                         >
                             {formatDateHeader(date)}
                         </h2>
@@ -144,6 +159,32 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                     </div>
                 ))}
             </div>
+          ) : (
+            <div className="max-w-2xl mx-auto">
+              <div className="flex justify-between items-center mb-4">
+                  <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
+                      <ChevronLeft />
+                  </Button>
+                  <h2 
+                    className="text-2xl font-bold text-center cursor-pointer hover:underline"
+                    onClick={() => setCenterDate(startOfDay(new Date()))}
+                    title="Go to Today"
+                  >
+                      {formatDateHeader(centerDate)}
+                  </h2>
+                  <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
+                      <ChevronRight />
+                  </Button>
+              </div>
+              <div className="flex justify-center mb-6">
+                  <Button variant="ghost" onClick={() => setViewMode('week')}>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Back to Week View
+                  </Button>
+              </div>
+              <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} />
+            </div>
+          )}
         </main>
 
       <footer className="mt-auto pt-8">
