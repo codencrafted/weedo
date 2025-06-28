@@ -5,7 +5,7 @@ import type { Task } from '@/lib/types';
 import TaskList from './task-list';
 import TaskForm from './task-form';
 import { Confetti } from './confetti';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
 import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 
 type TodoAppProps = {
   name: string;
+  isFirstSession?: boolean;
 };
 
 const formatDateHeader = (date: Date): string => {
@@ -25,7 +26,7 @@ const formatDateHeader = (date: Date): string => {
 };
 
 
-export default function TodoApp({ name }: TodoAppProps) {
+export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,20 +45,6 @@ export default function TodoApp({ name }: TodoAppProps) {
     } catch (error) {
       console.error("Could not parse tasks from local storage", error);
       initialTasks = [];
-    }
-
-    if (initialTasks.length === 0) {
-      const now = new Date();
-      initialTasks = [
-        { id: crypto.randomUUID(), text: 'Review project proposal', completed: true, createdAt: subDays(now, 1).toISOString() },
-        { id: crypto.randomUUID(), text: 'Call the vet', completed: false, createdAt: subDays(now, 1).toISOString() },
-        { id: crypto.randomUUID(), text: 'Finish the design mockups', completed: false, createdAt: now.toISOString() },
-        { id: crypto.randomUUID(), text: 'Go for a run', completed: true, createdAt: now.toISOString() },
-        { id: crypto.randomUUID(), text: 'Buy groceries', completed: false, createdAt: now.toISOString() },
-        { id: crypto.randomUUID(), text: 'Team meeting', completed: false, createdAt: addDays(now, 1).toISOString() },
-        { id: crypto.randomUUID(), text: 'Doctor\'s appointment', completed: false, createdAt: addDays(now, 2).toISOString() },
-        { id: crypto.randomUUID(), text: 'Plan weekend trip', completed: false, createdAt: addDays(now, 4).toISOString() },
-      ];
     }
     
     setTasks(initialTasks);
@@ -78,7 +65,10 @@ export default function TodoApp({ name }: TodoAppProps) {
   const toggleTask = (id: string) => {
     const taskToToggle = tasks.find(t => t.id === id);
     if (taskToToggle && !taskToToggle.completed) {
-      setShowConfetti(true);
+      const allTasksWillBeCompleted = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate) && !t.completed).length === 1;
+       if (allTasksWillBeCompleted) {
+        setShowConfetti(true);
+       }
     }
     setTasks(tasks.map(task =>
       task.id === id ? { ...task, completed: !task.completed } : task
@@ -95,11 +85,21 @@ export default function TodoApp({ name }: TodoAppProps) {
     setTasks([newTask, ...tasks]);
   };
 
-  const visibleDates = [
+  const visibleDates = React.useMemo(() => {
+    if (isFirstSession && viewMode === 'week') {
+      return [
+        centerDate,
+        addDays(centerDate, 1),
+        addDays(centerDate, 2)
+      ];
+    }
+    return [
       subDays(centerDate, 1),
       centerDate,
       addDays(centerDate, 1)
-  ];
+    ];
+  }, [centerDate, isFirstSession, viewMode]);
+
 
   const dailyTasks = visibleDates.map(date => 
     tasks
@@ -139,11 +139,6 @@ export default function TodoApp({ name }: TodoAppProps) {
       }
   };
 
-  const tapAnimationVariants = {
-    hover: { scale: 1.1 },
-    tap: { scale: 0.95 },
-  };
-
   const navButtonVariants = {
     rest: { scale: 1 },
     hover: { scale: 1.1 },
@@ -160,6 +155,8 @@ export default function TodoApp({ name }: TodoAppProps) {
     hover: { x: 2 },
   };
 
+  const isPrevDisabled = isFirstSession && isToday(centerDate);
+
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
        {showConfetti && <Confetti onComplete={() => setShowConfetti(false)} />}
@@ -168,7 +165,7 @@ export default function TodoApp({ name }: TodoAppProps) {
         <div className="flex items-center gap-2">
             {viewMode === 'day' && (
               <motion.button
-                className={cn(buttonVariants({ variant: 'ghost' }), "relative overflow-hidden gap-0 hover:bg-transparent")}
+                className={cn("relative overflow-hidden gap-0 flex items-center justify-center h-10 px-4 py-2 text-sm font-medium hover:bg-transparent", "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50")}
                 onClick={() => {
                   setSlideDirection(0);
                   setViewMode('week');
@@ -191,7 +188,7 @@ export default function TodoApp({ name }: TodoAppProps) {
               </motion.button>
             )}
              <motion.div
-                variants={tapAnimationVariants}
+                variants={navButtonVariants}
                 initial="rest"
                 whileHover="hover"
                 whileTap="tap"
@@ -240,7 +237,7 @@ export default function TodoApp({ name }: TodoAppProps) {
               >
                 <div className="flex justify-between items-center mb-4">
                     <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
-                      <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
+                      <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day" disabled={isPrevDisabled}>
                           <motion.div variants={leftArrowVariants}>
                             <ChevronLeft />
                           </motion.div>
