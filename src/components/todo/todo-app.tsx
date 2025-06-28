@@ -32,7 +32,6 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
   const [slideDirection, setSlideDirection] = useState(0);
 
   useEffect(() => {
-    setViewMode('day');
     let initialTasks: Task[] = [];
     try {
       const storedTasks = localStorage.getItem('weedo-tasks');
@@ -60,6 +59,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
     
     setTasks(initialTasks);
     setIsLoading(false);
+    setViewMode('day'); // Start in day view
   }, []);
 
   useEffect(() => {
@@ -164,11 +164,24 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
         <h1 className="text-3xl font-bold text-foreground">
           Hi, {name}!
         </h1>
-        <motion.div variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap">
-          <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </motion.div>
+        <div className="flex items-center gap-2">
+            {viewMode === 'day' && (
+                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button variant="ghost" onClick={() => {
+                      setSlideDirection(0);
+                      setViewMode('week');
+                    }}>
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Week View
+                    </Button>
+                </motion.div>
+            )}
+            <motion.div variants={buttonVariants} initial="rest" whileHover="hover" whileTap="tap">
+              <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </motion.div>
+        </div>
       </header>
       
         <main className="flex-grow mt-6">
@@ -239,17 +252,7 @@ export default function TodoApp({ name, onLogout }: TodoAppProps) {
                       </Button>
                     </motion.div>
                 </div>
-                <div className="flex justify-center mb-6">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="ghost" onClick={() => {
-                        setSlideDirection(0);
-                        setViewMode('week');
-                      }}>
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Back to Week View
-                      </Button>
-                    </motion.div>
-                </div>
+                
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={centerDate.toISOString()}
