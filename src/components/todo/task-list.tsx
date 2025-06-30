@@ -7,7 +7,7 @@ import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
-import WaterBreakAnimation from './coffee-animation';
+import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay } from 'date-fns';
 import AnimatedList from './animated-list';
@@ -34,7 +34,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
 
   if (allTasksCompleted) {
-    return <WaterBreakAnimation />;
+    return <NotificationsStack />;
   }
 
   if (tasks.length === 0) {
@@ -45,7 +45,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
     }
 
     return (
-      <Card className="shadow-none">
+      <Card className="shadow-none border-primary/20 transition-all duration-300 hover:border-primary/40">
         <CardContent className="p-10">
           <div className="text-center text-muted-foreground">
             <p className="text-lg">All clear!</p>
