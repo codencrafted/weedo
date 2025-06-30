@@ -41,8 +41,7 @@ export default function SettingsPage() {
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [showUncompleteConfirm, setShowUncompleteConfirm] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [openConfirmation, setOpenConfirmation] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -120,6 +119,12 @@ export default function SettingsPage() {
       })
     }
   };
+  
+  const confirmationVariants = {
+    hidden: { opacity: 0, y: -10, scale: 0.98 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+    exit: { opacity: 0, y: 10, scale: 0.98, transition: { duration: 0.2, ease: 'easeIn' } }
+  };
 
   return (
     <motion.div
@@ -168,7 +173,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col items-center w-full">
                      <PopoverRoot initialValue={name ?? ""}>
                         <PopoverTrigger asChild>
-                          <h2 className="text-2xl font-semibold leading-none tracking-tight cursor-pointer hover:text-primary transition-colors">{name}</h2>
+                           <h2 className="text-2xl font-semibold leading-none tracking-tight cursor-pointer hover:text-primary transition-colors">{name}</h2>
                         </PopoverTrigger>
                         <PopoverContent className="w-80 h-auto">
                           <PopoverForm onSubmit={handleNameSave}>
@@ -197,16 +202,16 @@ export default function SettingsPage() {
             <div className="p-6 pt-0">
               <div className="flex flex-col gap-2 mt-4">
                   <div>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto" onClick={() => setShowUncompleteConfirm(p => !p)}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'uncomplete' ? null : 'uncomplete')}>
                         <RefreshCw className="mr-3 h-5 w-5" />
                         <div>
                             <p>Mark All Incomplete</p>
                             <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
                         </div>
                     </Button>
-                    <Expandable expanded={showUncompleteConfirm}>
+                    <Expandable expanded={openConfirmation === 'uncomplete'}>
                         <ExpandableContent>
-                           <div className="rounded-lg border bg-card p-4 mt-2">
+                           <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
                               <div className="flex items-start gap-3">
                                   <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
                                   <div>
@@ -215,25 +220,25 @@ export default function SettingsPage() {
                                   </div>
                               </div>
                               <div className="flex justify-end gap-2 mt-4">
-                                  <Button variant="ghost" onClick={() => setShowUncompleteConfirm(false)}>Cancel</Button>
-                                  <Button onClick={() => { handleUncompleteAll(); setShowUncompleteConfirm(false); }}>Continue</Button>
+                                  <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
+                                  <Button onClick={() => { handleUncompleteAll(); setOpenConfirmation(null); }}>Continue</Button>
                               </div>
-                          </div>
+                          </motion.div>
                        </ExpandableContent>
                     </Expandable>
                   </div>
                  
                   <div>
-                     <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto" onClick={() => setShowLogoutConfirm(p => !p)}>
+                     <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'logout' ? null : 'logout')}>
                         <LogOut className="mr-3 h-5 w-5" />
                         <div>
                            <p>Logout</p>
                            <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
                        </div>
                    </Button>
-                    <Expandable expanded={showLogoutConfirm}>
+                    <Expandable expanded={openConfirmation === 'logout'}>
                         <ExpandableContent>
-                           <div className="rounded-lg border bg-card p-4 mt-2">
+                           <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
                               <div className="flex items-start gap-3">
                                   <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
                                   <div>
@@ -242,10 +247,10 @@ export default function SettingsPage() {
                                   </div>
                               </div>
                               <div className="flex justify-end gap-2 mt-4">
-                                  <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>Cancel</Button>
-                                  <Button variant="destructive" onClick={() => { handleLogout(); setShowLogoutConfirm(false); }}>Logout</Button>
+                                  <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
+                                  <Button variant="destructive" onClick={() => { handleLogout(); setOpenConfirmation(null); }}>Logout</Button>
                               </div>
-                          </div>
+                          </motion.div>
                        </ExpandableContent>
                     </Expandable>
                   </div>

@@ -19,7 +19,7 @@ import useMeasure from "react-use-measure"
  
 import { cn } from "@/lib/utils"
  
-const springConfig = { stiffness: 200, damping: 20, bounce: 0.2 }
+const springConfig = { stiffness: 350, damping: 30, bounce: 0.3 };
  
 interface ExpandableContextType {
   isExpanded: boolean // Indicates whether the component is expanded
@@ -39,7 +39,7 @@ const ExpandableContext = createContext<ExpandableContextType>({
   toggleExpand: () => {},
   expandDirection: "vertical", // 'vertical' | 'horizontal' | 'both' // Direction of expansion
   expandBehavior: "replace", // How the expansion affects surrounding content
-  transitionDuration: 0.3, // Duration of the expansion/collapse animation
+  transitionDuration: 0.5, // Duration of the expansion/collapse animation
   easeType: "easeInOut", // Easing function for the animation
   initialDelay: 0,
 })
@@ -70,7 +70,7 @@ const Expandable = React.forwardRef<HTMLDivElement, ExpandableProps>(
       children,
       expanded,
       onToggle,
-      transitionDuration = 0.3,
+      transitionDuration = 0.5,
       easeType = "easeInOut",
       expandDirection = "vertical",
       expandBehavior = "replace",
@@ -138,206 +138,28 @@ const Expandable = React.forwardRef<HTMLDivElement, ExpandableProps>(
 )
 Expandable.displayName = "Expandable"
  
-// Simplify animation types
-type AnimationPreset = {
-  initial: { [key: string]: any }
-  animate: { [key: string]: any }
-  exit: { [key: string]: any }
-}
- 
-// Update ANIMATION_PRESETS type
-const ANIMATION_PRESETS: Record<string, AnimationPreset> = {
-  fade: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-  },
-  "slide-up": {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: 20 },
-  },
-  "slide-down": {
-    initial: { opacity: 0, y: -20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
-  },
-  "slide-left": {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 },
-  },
-  "slide-right": {
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
-  },
-  scale: {
-    initial: { opacity: 0, scale: 0.8 },
-    animate: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 0.8 },
-  },
-  rotate: {
-    initial: { opacity: 0, rotate: -10 },
-    animate: { opacity: 1, rotate: 0 },
-    exit: { opacity: 0, rotate: -10 },
-  },
-  "blur-sm": {
-    initial: { opacity: 0, filter: "blur(4px)" },
-    animate: { opacity: 1, filter: "blur(0px)" },
-    exit: { opacity: 0, filter: "blur(4px)" },
-  },
-  "blur-md": {
-    initial: { opacity: 0, filter: "blur(8px)" },
-    animate: { opacity: 1, filter: "blur(0px)" },
-    exit: { opacity: 0, filter: "blur(8px)" },
-  },
-  "blur-lg": {
-    initial: { opacity: 0, filter: "blur(16px)" },
-    animate: { opacity: 1, filter: "blur(0px)" },
-    exit: { opacity: 0, filter: "blur(16px)" },
-  },
-}
- 
-// Update type definitions
-type AnimationConfig = {
-  initial: { [key: string]: number | string }
-  animate: { [key: string]: number | string }
-  exit: { [key: string]: number | string }
-}
- 
-// Props for defining custom animations
-interface AnimationProps {
-  initial?: TargetAndTransition
-  animate?: TargetAndTransition
-  exit?: TargetAndTransition
-  transition?: any
-}
- 
-// Inside ExpandableContent component
-const getAnimationProps = (
-  preset: keyof typeof ANIMATION_PRESETS | undefined,
-  animateIn?: AnimationProps,
-  animateOut?: AnimationProps
-) => {
-  const defaultAnimation = {
-    initial: {},
-    animate: {},
-    exit: {},
-  }
- 
-  const presetAnimation = preset ? ANIMATION_PRESETS[preset] : defaultAnimation
- 
-  return {
-    initial: presetAnimation.initial,
-    animate: presetAnimation.animate,
-    exit: animateOut?.exit || presetAnimation.exit,
-  }
-}
- 
-// Wrap this around items in the card that you want to be hidden then animated in on expansion
 const ExpandableContent = React.forwardRef<
   HTMLDivElement,
-  Omit<HTMLMotionProps<"div">, "ref"> & {
-    preset?: keyof typeof ANIMATION_PRESETS
-    animateIn?: AnimationProps
-    animateOut?: AnimationProps
-    stagger?: boolean
-    staggerChildren?: number
-    keepMounted?: boolean
-  }
->(
-  (
-    {
-      children,
-      preset,
-      animateIn,
-      animateOut,
-      stagger = false,
-      staggerChildren = 0.1,
-      keepMounted = false,
-      ...props
-    },
-    ref
-  ) => {
-    const { isExpanded, transitionDuration, easeType } = useExpandable()
-    // useMeasure is used to measure the height of the content
-    const [measureRef, { height: measuredHeight }] = useMeasure()
-    // useMotionValue creates a value that can be animated smoothly
-    const animatedHeight = useMotionValue(0)
-    // useSpring applies a spring animation to the height value
-    const smoothHeight = useSpring(animatedHeight, springConfig)
- 
-    useEffect(() => {
-      // Animate the height based on whether the content is expanded or collapsed
-      if (isExpanded) {
-        animatedHeight.set(measuredHeight)
-      } else {
-        animatedHeight.set(0)
-      }
-    }, [isExpanded, measuredHeight, animatedHeight])
- 
-    const animationProps = getAnimationProps(preset, animateIn, animateOut)
- 
-    return (
-      // This motion.div animates the height of the content
-      <motion.div
-        ref={ref}
-        style={{
-          height: isExpanded ? "auto" : 0,
-          overflow: "hidden",
-        }}
-        animate={{
-          height: isExpanded ? measuredHeight || "auto" : 0
-        }}
-        transition={{ duration: transitionDuration, ease: easeType }}
-        {...props}
-      >
-        {/* AnimatePresence handles the entering and exiting of components */}
-        <AnimatePresence initial={false}>
-            {/* This motion.div handles the animation of the content itself */}
-            <motion.div
-              ref={measureRef}
-            >
-              {stagger ? (
-                // If stagger is true, we apply a staggered animation to the children
-                <motion.div
-                  variants={{
-                    hidden: {},
-                    visible: {
-                      transition: {
-                        staggerChildren: staggerChildren,
-                      },
-                    },
-                  }}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {React.Children.map(
-                    children as React.ReactNode,
-                    (child, index) => (
-                      <motion.div
-                        key={index}
-                        variants={{
-                          hidden: { opacity: 0, y: 20 },
-                          visible: { opacity: 1, y: 0 },
-                        }}
-                      >
-                        {child}
-                      </motion.div>
-                    )
-                  )}
-                </motion.div>
-              ) : (
-                children
-              )}
-            </motion.div>
-        </AnimatePresence>
-      </motion.div>
-    )
-  }
-)
-ExpandableContent.displayName = "ExpandableContent"
+  HTMLMotionProps<"div">
+>(({ children, className, ...props }, ref) => {
+  const { isExpanded } = useExpandable();
+  const [measureRef, { height }] = useMeasure();
+
+  return (
+    <motion.div
+      ref={ref}
+      className={cn("overflow-hidden", className)}
+      initial={false}
+      animate={{ height: isExpanded ? height || "auto" : 0 }}
+      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+    >
+      <div ref={measureRef} {...props}>
+        {children}
+      </div>
+    </motion.div>
+  );
+});
+ExpandableContent.displayName = "ExpandableContent";
  
 interface ExpandableCardProps {
   children: ReactNode
