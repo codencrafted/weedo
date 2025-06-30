@@ -50,9 +50,9 @@ export default function InitialTasks({ name, onTasksSet }: InitialTasksProps) {
   return (
     <motion.div
       className="flex items-center justify-center min-h-screen p-4"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
     >
       <div className="w-full max-w-lg">
         <form onSubmit={handleSubmit}>
