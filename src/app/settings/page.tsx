@@ -53,47 +53,25 @@ export default function SettingsPage() {
     }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 100,
-      },
-    },
-  };
-
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
       className="flex flex-col items-center justify-center min-h-screen bg-background p-4"
     >
       <div className="w-full max-w-md">
-        <motion.div variants={itemVariants} className="mb-6 self-start">
+        <div className="mb-6 self-start">
           <Link href="/" passHref>
             <Button variant="ghost" className="hover:bg-transparent">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Tasks
             </Button>
           </Link>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
+        <div>
           <Card className="w-full">
             <CardHeader className="items-center text-center">
                {isLoading ? (
@@ -125,7 +103,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );
