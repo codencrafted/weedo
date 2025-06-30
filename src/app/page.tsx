@@ -5,7 +5,7 @@ import NamePrompt from '@/components/todo/name-prompt';
 import TodoApp from '@/components/todo/todo-app';
 import InitialTasks from '@/components/todo/initial-tasks';
 import type { Task } from '@/lib/types';
-import { TypewriterAnimation } from '@/components/todo/typewriter-animation';
+import { LoadingAnimation } from '@/components/todo/typewriter-animation';
 
 type View = 'loading' | 'name' | 'tasks' | 'app';
 
@@ -60,7 +60,7 @@ export default function Home() {
   };
 
   if (view === 'loading') {
-    return <TypewriterAnimation />;
+    return <LoadingAnimation />;
   }
 
   return (
