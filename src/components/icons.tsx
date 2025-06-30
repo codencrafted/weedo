@@ -4,16 +4,20 @@ export function WeedoLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      viewBox="-52 -52 104 104"
+      fill="currentColor"
       {...props}
     >
-      <path d="M9 11l3 3L22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      <g>
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(45)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(90)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(135)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(180)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(225)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(270)" />
+        <path d="M0,0 C-10,-20 -30,-20 -40,0 C-30,20 -10,20 0,0Z" transform="rotate(315)" />
+      </g>
     </svg>
   );
 }
