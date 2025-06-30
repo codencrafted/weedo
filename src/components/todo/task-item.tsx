@@ -56,7 +56,6 @@ export default function TaskItem({ task, onToggle, isFuture, isPast }: TaskItemP
       )}
     >
       <label
-        htmlFor={`task-${task.id}`}
         className={cn(
           "flex-grow text-lg transition-colors duration-300 pr-4",
           task.completed ? 'text-muted-foreground line-through' : 'text-foreground',
