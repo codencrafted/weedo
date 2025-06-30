@@ -9,7 +9,7 @@ import { Card, CardContent } from '../ui/card';
 import { Separator } from '../ui/separator';
 import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
-import { isAfter, startOfDay } from 'date-fns';
+import { isAfter, startOfDay, isBefore } from 'date-fns';
 import AnimatedList from './animated-list';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
@@ -37,6 +37,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
 
   const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
+  const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
 
   if (allTasksCompleted) {
     return (
@@ -79,7 +80,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
                  <AnimatedList>
                     {tasks.map((task, index) => (
                       <div key={task.id}>
-                        <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} />
+                        <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} isPast={isPastDate} />
                         {index < tasks.length - 1 && <Separator />}
                       </div>
                     ))}
@@ -102,8 +103,8 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
       <Card className="shadow-none border-primary/20 transition-all duration-300 hover:border-primary/40">
         <CardContent className="p-10">
           <div className="text-center text-muted-foreground">
-            <p className="text-lg">All clear!</p>
-            <p className="text-sm">No tasks for this day.</p>
+            <p className="text-lg">{isPastDate ? "History is written." : "All clear!"}</p>
+            <p className="text-sm">{isPastDate ? "No tasks were recorded for this day." : "No tasks for this day."}</p>
           </div>
         </CardContent>
       </Card>
@@ -116,7 +117,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
          <AnimatedList>
             {tasks.map((task, index) => (
               <div key={task.id}>
-                <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} />
+                <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} isPast={isPastDate} />
                 {index < tasks.length - 1 && <Separator />}
               </div>
             ))}

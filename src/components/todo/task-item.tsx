@@ -11,13 +11,14 @@ type TaskItemProps = {
   task: Task;
   onToggle: (id: string) => void;
   isFuture: boolean;
+  isPast: boolean;
 };
 
-export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
+export default function TaskItem({ task, onToggle, isFuture, isPast }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
 
   const handleToggle = () => {
-    if (isFuture) {
+    if (isFuture || isPast) {
       setIsShaking(true);
       return;
     }
@@ -50,7 +51,8 @@ export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
       className={cn(
         "flex items-center justify-between py-2 transition-opacity duration-400",
         task.completed ? 'opacity-60' : 'opacity-100',
-        isFuture && !task.completed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        isFuture && !task.completed ? 'opacity-50' : '',
+        (isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer'
       )}
     >
       <label
@@ -58,7 +60,7 @@ export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
         className={cn(
           "flex-grow text-lg transition-colors duration-300 pr-4",
           task.completed ? 'text-muted-foreground line-through' : 'text-foreground',
-          isFuture && !task.completed ? 'cursor-not-allowed' : 'cursor-pointer'
+          (isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer'
         )}
       >
         {task.text}
