@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { WeedoLogo } from '@/components/icons';
 import { ArrowRight } from 'lucide-react';
+import SplitText from './split-text';
 
 type NamePromptProps = {
   onNameSet: (name: string) => void;
@@ -28,7 +29,7 @@ export default function NamePrompt({ onNameSet }: NamePromptProps) {
             <div className="flex justify-center mb-4">
               <WeedoLogo className="w-16 h-16 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold">Welcome to Weedo!</h1>
+            <SplitText text="Welcome to Weedo!" className="text-3xl font-bold justify-center" />
             <p className="text-sm text-muted-foreground">Your simple and beautiful to-do list.</p>
           </div>
           
