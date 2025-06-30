@@ -10,6 +10,7 @@ import { Separator } from '../ui/separator';
 import WaterBreakAnimation from './coffee-animation';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay } from 'date-fns';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type TaskListProps = {
   tasks: Task[];
@@ -58,17 +59,23 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   return (
     <Card>
       <CardContent className="p-2 md:p-4">
-        <div className="flex flex-col">
+        <motion.div layout className="flex flex-col">
+          <AnimatePresence>
             {tasks.map((task, index) => (
-            <React.Fragment key={task.id}>
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, height: 0, y: 20 }}
+                animate={{ opacity: 1, height: 'auto', y: 0, transition: { type: 'spring', bounce: 0.3, duration: 0.5 } }}
+                exit={{ opacity: 0, height: 0, y: -20, transition: { type: 'spring', bounce: 0, duration: 0.3 } }}
+              >
                 <TaskItem task={task} onToggle={onToggleTask} />
                 {index < tasks.length - 1 && <Separator />}
-            </React.Fragment>
+              </motion.div>
             ))}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       </CardContent>
     </Card>
   );
 }
-
-    

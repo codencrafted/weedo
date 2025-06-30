@@ -3,7 +3,6 @@
 import type { Task } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 
 type TaskItemProps = {
   task: Task;
@@ -16,11 +15,11 @@ export default function TaskItem({ task, onToggle }: TaskItemProps) {
   };
 
   return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: task.completed ? 0.6 : 1 }}
-      transition={{ duration: 0.4 }}
-      className="flex items-center justify-between py-2"
+    <div
+      className={cn(
+        "flex items-center justify-between py-2 transition-opacity duration-400",
+        task.completed ? 'opacity-60' : 'opacity-100'
+      )}
     >
       <label
         htmlFor={`task-${task.id}`}
@@ -38,6 +37,6 @@ export default function TaskItem({ task, onToggle }: TaskItemProps) {
         className="w-6 h-6 shrink-0"
         aria-label={`Mark task "${task.text}" as ${task.completed ? 'not completed' : 'completed'}`}
       />
-    </motion.div>
+    </div>
   );
 }
