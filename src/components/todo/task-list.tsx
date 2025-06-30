@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
@@ -11,6 +11,9 @@ import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay } from 'date-fns';
 import AnimatedList from './animated-list';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Button } from '../ui/button';
+import { EyeOff } from 'lucide-react';
 
 type TaskListProps = {
   tasks: Task[];
@@ -20,6 +23,7 @@ type TaskListProps = {
 };
 
 export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }: TaskListProps) {
+  const [showCompleted, setShowCompleted] = useState(false);
   
   if (isLoading) {
     return (
@@ -34,8 +38,52 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
 
   if (allTasksCompleted) {
-    return <NotificationsStack />;
+    return (
+      <AnimatePresence mode="wait">
+        {!showCompleted ? (
+          <motion.div
+            key="notifications"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            onClick={() => setShowCompleted(true)}
+            className="cursor-pointer"
+          >
+            <NotificationsStack />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="completed-list"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+          >
+             <div className="flex justify-end p-2 pb-0">
+              <Button variant="ghost" size="sm" onClick={() => setShowCompleted(false)}>
+                <EyeOff className="mr-2 h-4 w-4"/>
+                Hide
+              </Button>
+            </div>
+            <Card className="shadow-none border-0">
+              <CardContent className="p-0">
+                 <AnimatedList>
+                    {tasks.map((task, index) => (
+                      <div key={task.id}>
+                        <TaskItem task={task} onToggle={onToggleTask} />
+                        {index < tasks.length - 1 && <Separator />}
+                      </div>
+                    ))}
+                </AnimatedList>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
   }
+
 
   if (tasks.length === 0) {
     const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
