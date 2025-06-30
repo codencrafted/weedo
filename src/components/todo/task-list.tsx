@@ -36,6 +36,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   }
 
   const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
+  const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
 
   if (allTasksCompleted) {
     return (
@@ -47,7 +48,6 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            onClick={() => setShowCompleted(true)}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.2}
@@ -79,7 +79,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
                  <AnimatedList>
                     {tasks.map((task, index) => (
                       <div key={task.id}>
-                        <TaskItem task={task} onToggle={onToggleTask} />
+                        <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} />
                         {index < tasks.length - 1 && <Separator />}
                       </div>
                     ))}
@@ -94,8 +94,6 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
 
 
   if (tasks.length === 0) {
-    const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
-
     if (isFutureDate) {
       return <SausageDogAnimation />;
     }
@@ -118,7 +116,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
          <AnimatedList>
             {tasks.map((task, index) => (
               <div key={task.id}>
-                <TaskItem task={task} onToggle={onToggleTask} />
+                <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} />
                 {index < tasks.length - 1 && <Separator />}
               </div>
             ))}
