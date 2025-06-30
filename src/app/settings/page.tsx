@@ -20,7 +20,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const getInitials = (name: string | null): string => {
     if (!name) return '';
@@ -50,7 +49,7 @@ export default function SettingsPage() {
         setNewName(storedName);
         setInitials(getInitials(storedName));
       }
-    } catch (error) {
+    } catch (error) => {
       console.error("Could not access local storage", error);
     } finally {
         setIsLoading(false);
@@ -207,43 +206,50 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4 text-3xl">
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <div className="flex items-center gap-1">
-                    <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
-                    <Popover open={isEditingName} onOpenChange={setIsEditingName}>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <div className="flex flex-col items-center w-full">
+                    <div className="flex items-center gap-1">
+                      <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditingName(!isEditingName)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="grid gap-4">
-                          <div className="space-y-2">
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
+                     <AnimatePresence>
+                      {isEditingName && (
+                        <motion.div
+                          layout
+                          className="overflow-hidden mt-4 w-full"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        >
+                          <div className="p-4 border rounded-lg bg-muted/50 text-left">
                             <h4 className="font-medium leading-none">Edit Name</h4>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mb-4">
                               Update your name below.
                             </p>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleNameSave();
+                                    e.preventDefault();
+                                  }
+                                  if (e.key === 'Escape') setIsEditingName(false);
+                                }}
+                                autoFocus
+                                className="h-9"
+                              />
+                              <Button size="icon" className="h-9 w-9" onClick={handleNameSave} aria-label="Save name"><Check className="h-4 w-4"/></Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              value={newName}
-                              onChange={(e) => setNewName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleNameSave();
-                                  e.preventDefault();
-                                }
-                                if (e.key === 'Escape') setIsEditingName(false);
-                              }}
-                              autoFocus
-                              className="h-9"
-                            />
-                            <Button size="icon" className="h-9 w-9" onClick={handleNameSave} aria-label="Save name"><Check className="h-4 w-4"/></Button>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
                 </>
               )}
             </div>
