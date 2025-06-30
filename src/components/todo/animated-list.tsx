@@ -4,34 +4,10 @@
 import React, { useRef, useState, useEffect, ReactNode, UIEvent } from "react";
 import {
   motion,
-  useInView,
   useScroll,
   useTransform,
   useSpring,
 } from "framer-motion";
-
-const AnimatedItemWrapper: React.FC<{ children: ReactNode; index: number }> = ({
-  children,
-  index,
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { amount: 0.2, once: true });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ scale: 0.7, opacity: 0 }}
-      animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
-      transition={{
-        duration: 0.4,
-        delay: inView ? index * 0.05 : 0,
-        ease: "easeOut",
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-};
 
 interface AnimatedListProps {
   children: ReactNode;
@@ -106,6 +82,19 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
     }
   }, [children]);
 
+  const itemVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: (i: number) => ({
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        delay: i * 0.05,
+        ease: "easeOut",
+      },
+    }),
+  };
+
   return (
     <div className={`relative w-full ${className}`}>
       <div
@@ -115,9 +104,20 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
       >
         <motion.div ref={contentRef} style={{ y: springY }}>
           {childrenArray.map((child, index) => (
-            <AnimatedItemWrapper key={index} index={index}>
+            <motion.div
+              layout
+              key={(child as React.ReactElement).key}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+              custom={index}
+              variants={itemVariants}
+              transition={{
+                layout: { duration: 0.5, type: 'spring', bounce: 0.4 }
+              }}
+            >
               {child}
-            </AnimatedItemWrapper>
+            </motion.div>
           ))}
         </motion.div>
       </div>
