@@ -5,24 +5,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, LogOut, AlertTriangle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
-
+import { cn } from '@/lib/utils';
 
 const getInitials = (name: string | null): string => {
     if (!name) return '';
@@ -40,6 +37,7 @@ export default function SettingsPage() {
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState<null | 'uncomplete' | 'logout'>(null);
 
   useEffect(() => {
     try {
@@ -74,6 +72,8 @@ export default function SettingsPage() {
         title: "Error",
         description: "Could not update tasks.",
       })
+    } finally {
+      setOpenDialog(null);
     }
   };
 
@@ -98,10 +98,44 @@ export default function SettingsPage() {
   };
 
   const motionProps = {
-    whileHover: { scale: 1.05 },
-    whileTap: { scale: 0.95 },
+    whileHover: { scale: 1.02 },
+    whileTap: { scale: 0.98 },
     transition: { type: 'spring', stiffness: 400, damping: 17 }
   };
+  
+  const ConfirmationCard = ({ title, description, onConfirm, onCancel, confirmText = "Continue", confirmVariant = "default" } : {
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    confirmText?: string;
+    confirmVariant?: "default" | "destructive";
+  }) => (
+     <motion.div
+      layout
+      initial={{ opacity: 0, height: 0, y: -10 }}
+      animate={{ opacity: 1, height: 'auto', y: 0 }}
+      exit={{ opacity: 0, height: 0, y: -10 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      className="overflow-hidden"
+    >
+      <Card className={cn("mt-2", confirmVariant === "destructive" ? "bg-destructive/10 border-destructive/30" : "bg-muted/50 border-border")}>
+        <CardHeader>
+            <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                <div>
+                    <CardTitle className="text-base">{title}</CardTitle>
+                    <CardDescription className="text-foreground/80">{description}</CardDescription>
+                </div>
+            </div>
+        </CardHeader>
+        <CardFooter className="justify-end gap-2 pb-4 pr-4 pt-0">
+            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            <Button variant={confirmVariant} onClick={onConfirm}>{confirmText}</Button>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  );
 
   return (
     <motion.div
@@ -155,61 +189,47 @@ export default function SettingsPage() {
             <div className="p-6 pt-0">
               <div className="flex flex-col gap-2 mt-4">
                  
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                     <motion.div {...motionProps}>
-                        <Button variant="outline" className="w-full justify-start text-base hover:bg-transparent">
-                            <RefreshCw className="mr-2 h-5 w-5" />
-                            Mark All Tasks as Incomplete
-                        </Button>
-                     </motion.div>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <div className="flex items-center justify-center text-center sm:text-left sm:justify-start gap-2">
-                        <AlertTriangle className="h-6 w-6 text-destructive" />
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      </div>
-                      <AlertDialogDescription className="sm:pl-8">
-                        This will mark all of your tasks, across all days, as incomplete. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleUncompleteAll}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <motion.div {...motionProps}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-base text-destructive hover:bg-transparent hover:text-destructive"
-                      >
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Logout
-                      </Button>
-                    </motion.div>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <div className="flex items-center justify-center text-center sm:text-left sm:justify-start gap-2">
-                        <AlertTriangle className="h-6 w-6 text-destructive" />
-                        <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                      </div>
-                      <AlertDialogDescription className="sm:pl-8">
-                        This will permanently delete all your data, including your name and tasks. This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleLogout}>Logout</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <motion.div {...motionProps} className="rounded-lg">
+                    <Button variant="ghost" className="w-full justify-start text-left text-base hover:bg-transparent p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'uncomplete' ? null : 'uncomplete')}>
+                        <RefreshCw className="mr-3 h-5 w-5" />
+                        <div>
+                            <p>Mark All Incomplete</p>
+                            <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
+                        </div>
+                    </Button>
+                </motion.div>
+                <AnimatePresence>
+                  {openDialog === 'uncomplete' && (
+                    <ConfirmationCard
+                      title="Are you sure?"
+                      description="This will mark all of your tasks, across all days, as incomplete. This action cannot be undone."
+                      onConfirm={handleUncompleteAll}
+                      onCancel={() => setOpenDialog(null)}
+                    />
+                  )}
+                </AnimatePresence>
 
+                <motion.div {...motionProps} className="rounded-lg">
+                    <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive hover:bg-transparent hover:text-destructive p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'logout' ? null : 'logout')}>
+                        <LogOut className="mr-3 h-5 w-5" />
+                        <div>
+                           <p>Logout</p>
+                           <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
+                       </div>
+                   </Button>
+                </motion.div>
+                <AnimatePresence>
+                  {openDialog === 'logout' && (
+                    <ConfirmationCard
+                      title="Are you sure you want to log out?"
+                      description="This will permanently delete all your data, including your name and tasks. This action cannot be undone."
+                      onConfirm={handleLogout}
+                      onCancel={() => setOpenDialog(null)}
+                      confirmText="Logout"
+                      confirmVariant="destructive"
+                    />
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
