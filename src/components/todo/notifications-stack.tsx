@@ -37,7 +37,8 @@ const NotificationsStack = () => {
       className="relative flex flex-col items-center justify-center p-10 h-full"
       variants={containerVariants}
       initial="hidden"
-      animate="visible"
+      whileInView="visible"
+      viewport={{ once: true }}
     >
       <div className="relative h-40 w-72">
         {[...Array(3)].map((_, i) => (
@@ -81,7 +82,8 @@ const NotificationsStack = () => {
       </div>
       <motion.p 
         initial={{opacity: 0}}
-        animate={{opacity: 1}}
+        whileInView={{opacity: 1}}
+        viewport={{ once: true }}
         transition={{delay: 0.8}}
         className="text-sm text-muted-foreground mt-6"
       >
