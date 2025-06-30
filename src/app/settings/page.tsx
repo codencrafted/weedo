@@ -105,22 +105,33 @@ export default function SettingsPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 0 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 0 }}
-      transition={{ duration: 0.2 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
       className="flex flex-col items-center justify-center min-h-screen bg-background p-4"
     >
       <div className="w-full max-w-md">
         <div className="mb-6 self-start">
-            <motion.div {...motionProps} className="w-fit">
-              <Link href="/" passHref>
-                <Button variant="ghost" className="hover:bg-transparent">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Tasks
-                </Button>
-              </Link>
-            </motion.div>
+            <Link href="/" passHref>
+              <Button variant="ghost" className="hover:bg-transparent" asChild>
+                <motion.div
+                  className="flex items-center cursor-pointer"
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap={{scale: 0.98}}
+                >
+                  <motion.div
+                    variants={{ hover: { x: -4 }, rest: { x: 0 } }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    className="mr-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </motion.div>
+                  <span>Back to Tasks</span>
+                </motion.div>
+              </Button>
+            </Link>
         </div>
 
         <div className="w-full">

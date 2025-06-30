@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -82,9 +81,22 @@ export default function AnalyticsPage() {
       <div className="w-full max-w-2xl">
         <div className="mb-6 self-start">
           <Link href="/" passHref>
-            <Button variant="ghost" className="hover:bg-transparent">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Tasks
+            <Button variant="ghost" className="hover:bg-transparent" asChild>
+              <motion.div
+                className="flex items-center cursor-pointer"
+                initial="rest"
+                whileHover="hover"
+                whileTap={{scale: 0.98}}
+              >
+                <motion.div
+                  variants={{ hover: { x: -4 }, rest: { x: 0 } }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="mr-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </motion.div>
+                <span>Back to Tasks</span>
+              </motion.div>
             </Button>
           </Link>
         </div>
