@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -127,7 +126,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
        {showConfetti && <Confetti onComplete={() => setShowConfetti(false)} />}
       <header className="flex justify-between items-center mb-6 py-4">
-        <WeedoLogo className="w-8 h-8 text-primary" />
+        <WeedoLogo className="w-10 h-10 text-primary" />
         <div className="flex items-center gap-2">
              <motion.div
                 variants={navButtonVariants}
@@ -138,7 +137,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                 className="cursor-pointer"
              >
                 <Button variant="ghost" size="icon" aria-label="Analytics" className="hover:bg-transparent">
-                    <LineChart className="h-5 w-5" />
+                    <LineChart className="h-6 w-6" />
                 </Button>
             </motion.div>
              <motion.div
@@ -150,7 +149,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                 className="cursor-pointer"
              >
                 <Button variant="ghost" size="icon" aria-label="Settings" className="hover:bg-transparent">
-                    <Settings className="h-5 w-5" />
+                    <Settings className="h-6 w-6" />
                 </Button>
             </motion.div>
         </div>
