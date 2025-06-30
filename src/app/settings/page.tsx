@@ -207,39 +207,42 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4 text-3xl">
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <Popover open={isEditingName} onOpenChange={setIsEditingName}>
-                    <PopoverTrigger asChild>
-                      <div
-                        className="flex items-center gap-2 cursor-pointer p-2 rounded-md group"
-                      >
-                        <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
-                        <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="grid gap-4">
-                        <div className="space-y-2">
-                          <h4 className="font-medium leading-none">Edit Name</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Update your name below.
-                          </p>
+                  <div className="flex items-center gap-1">
+                    <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
+                    <Popover open={isEditingName} onOpenChange={setIsEditingName}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="grid gap-4">
+                          <div className="space-y-2">
+                            <h4 className="font-medium leading-none">Edit Name</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Update your name below.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={newName}
+                              onChange={(e) => setNewName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleNameSave();
+                                  e.preventDefault();
+                                }
+                                if (e.key === 'Escape') setIsEditingName(false);
+                              }}
+                              autoFocus
+                              className="h-9"
+                            />
+                            <Button size="icon" className="h-9 w-9" onClick={handleNameSave} aria-label="Save name"><Check className="h-4 w-4"/></Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleNameSave();
-                              if (e.key === 'Escape') setIsEditingName(false);
-                            }}
-                            autoFocus
-                            className="h-9"
-                          />
-                          <Button size="icon" className="h-9 w-9" onClick={handleNameSave} aria-label="Save name"><Check className="h-4 w-4"/></Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
                 </>
               )}
