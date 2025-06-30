@@ -49,7 +49,7 @@ export default function SettingsPage() {
         setNewName(storedName);
         setInitials(getInitials(storedName));
       }
-    } catch (error) => {
+    } catch (error) {
       console.error("Could not access local storage", error);
     } finally {
         setIsLoading(false);
