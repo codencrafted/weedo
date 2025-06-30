@@ -10,8 +10,7 @@ import { Separator } from '../ui/separator';
 import WaterBreakAnimation from './coffee-animation';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay } from 'date-fns';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ScrollArea } from '../ui/scroll-area';
+import AnimatedList from './animated-list';
 
 type TaskListProps = {
   tasks: Task[];
@@ -60,24 +59,14 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   return (
     <Card>
       <CardContent className="p-0">
-        <ScrollArea className="h-[45vh] w-full hide-scrollbar">
-            <motion.div layout className="flex flex-col p-2 md:p-4">
-              <AnimatePresence>
-                {tasks.map((task, index) => (
-                  <motion.div
-                    key={task.id}
-                    layout
-                    initial={{ opacity: 0, height: 0, y: 20 }}
-                    animate={{ opacity: 1, height: 'auto', y: 0, transition: { type: 'spring', bounce: 0.3, duration: 0.5 } }}
-                    exit={{ opacity: 0, height: 0, y: -20, transition: { type: 'spring', bounce: 0, duration: 0.3 } }}
-                  >
-                    <TaskItem task={task} onToggle={onToggleTask} />
-                    {index < tasks.length - 1 && <Separator />}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-        </ScrollArea>
+         <AnimatedList>
+            {tasks.map((task, index) => (
+              <div key={task.id}>
+                <TaskItem task={task} onToggle={onToggleTask} />
+                {index < tasks.length - 1 && <Separator />}
+              </div>
+            ))}
+        </AnimatedList>
       </CardContent>
     </Card>
   );
