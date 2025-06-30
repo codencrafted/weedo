@@ -60,7 +60,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   return (
     <Card>
       <CardContent className="p-0">
-        <ScrollArea className="h-[45vh] w-full">
+        <ScrollArea className="h-[45vh] w-full hide-scrollbar">
             <motion.div layout className="flex flex-col p-2 md:p-4">
               <AnimatePresence>
                 {tasks.map((task, index) => (
