@@ -48,7 +48,15 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             onClick={() => setShowCompleted(true)}
-            className="cursor-pointer"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(event, info) => {
+              if (info.offset.y > 50) {
+                setShowCompleted(true);
+              }
+            }}
+            className="cursor-grab active:cursor-grabbing"
           >
             <NotificationsStack />
           </motion.div>
