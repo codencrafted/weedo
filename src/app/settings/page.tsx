@@ -61,8 +61,8 @@ const ConfirmationContent = ({ title, description, onConfirm, confirmText, confi
                 <p>{description}</p>
             </PopoverBody>
             <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
-                <PopoverCloseButton>
-                    <Button variant="ghost">Cancel</Button>
+                <PopoverCloseButton asChild>
+                    <Button variant="ghost" type="button">Cancel</Button>
                 </PopoverCloseButton>
                 <Button variant={confirmVariant} onClick={handleConfirm}>{confirmText}</Button>
             </PopoverFooter>
@@ -216,8 +216,8 @@ export default function SettingsPage() {
                                     <PopoverInput placeholder="Enter your new name" />
                                 </PopoverBody>
                                 <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
-                                  <PopoverCloseButton>
-                                    <Button variant="ghost">Cancel</Button>
+                                  <PopoverCloseButton asChild>
+                                    <Button variant="ghost" type="button">Cancel</Button>
                                   </PopoverCloseButton>
                                   <PopoverSubmitButton>
                                     <Check className="h-4 w-4 mr-2" /> Save

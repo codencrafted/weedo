@@ -10,6 +10,7 @@ import React, {
 } from "react"
 import { X } from "lucide-react"
 import { AnimatePresence, MotionConfig, motion } from "framer-motion"
+import { Slot } from "@radix-ui/react-slot"
  
 import { cn } from "@/lib/utils"
  
@@ -271,20 +272,32 @@ export function PopoverFooter({ children, className }: PopoverFooterProps) {
 interface PopoverCloseButtonProps {
   className?: string
   children?: React.ReactNode
+  asChild?: boolean
 }
  
-export function PopoverCloseButton({ className, children }: PopoverCloseButtonProps) {
+export function PopoverCloseButton({
+  className,
+  children,
+  asChild = false,
+}: PopoverCloseButtonProps) {
   const { closePopover } = usePopover()
+  const Comp = asChild ? Slot : "button"
  
   return (
-    <button
+    <Comp
       type="button"
-      className={cn("flex items-center p-2 rounded-md hover:bg-muted", className)}
-      onClick={closePopover}
+      className={cn(
+        !asChild && "flex items-center p-2 rounded-md hover:bg-muted",
+        className
+      )}
+      onClick={(e: React.MouseEvent) => {
+        e.stopPropagation()
+        closePopover()
+      }}
       aria-label="Close popover"
     >
       {children || <X size={16} className="text-muted-foreground" />}
-    </button>
+    </Comp>
   )
 }
  
