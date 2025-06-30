@@ -4,8 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -78,14 +77,14 @@ export default function SettingsPage() {
     }
   };
 
-  const handleReset = () => {
+  const handleLogout = () => {
     try {
       localStorage.removeItem('weedo-name');
       localStorage.removeItem('weedo-tasks');
       localStorage.removeItem('weedo-tasks-initialized');
       toast({
-        title: "App Reset",
-        description: "All your data has been cleared.",
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
       });
       router.push('/');
     } catch (error) {
@@ -93,7 +92,7 @@ export default function SettingsPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not reset the app.",
+        description: "Could not log out.",
       })
     }
   };
@@ -114,17 +113,18 @@ export default function SettingsPage() {
     >
       <div className="w-full max-w-md">
         <div className="mb-6 self-start">
-          <Link href="/" passHref>
-            <Button variant="ghost" className="hover:bg-transparent">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Tasks
-            </Button>
-          </Link>
+            <motion.div {...motionProps} className="w-fit">
+              <Link href="/" passHref>
+                <Button variant="ghost" className="hover:bg-transparent">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Tasks
+                </Button>
+              </Link>
+            </motion.div>
         </div>
 
-        <div>
-          <Card className="w-full">
-            <CardHeader className="items-center text-center">
+        <div className="w-full">
+            <div className="flex flex-col items-center text-center p-6 pt-0">
                {isLoading ? (
                 <>
                     <Skeleton className="h-24 w-24 rounded-full" />
@@ -136,12 +136,12 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4 text-3xl">
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <CardTitle>{name}</CardTitle>
-                  <CardDescription>Manage your app settings.</CardDescription>
+                  <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
+                  <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
                 </>
               )}
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-6 pt-0">
               <div className="flex flex-col gap-2 mt-4">
                  
                 <AlertDialog>
@@ -155,8 +155,11 @@ export default function SettingsPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
+                      <div className="flex items-center justify-center text-center sm:text-left sm:justify-start gap-2">
+                        <AlertTriangle className="h-6 w-6 text-destructive" />
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      </div>
+                      <AlertDialogDescription className="sm:pl-8">
                         This will mark all of your tasks, across all days, as incomplete. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -174,29 +177,31 @@ export default function SettingsPage() {
                         variant="ghost"
                         className="w-full justify-start text-base text-destructive hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <Trash2 className="mr-2 h-5 w-5" />
-                        Reset App
+                        <LogOut className="mr-2 h-5 w-5" />
+                        Logout
                       </Button>
                     </motion.div>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action will permanently delete all your tasks and reset your name. This cannot be undone.
+                      <div className="flex items-center justify-center text-center sm:text-left sm:justify-start gap-2">
+                        <AlertTriangle className="h-6 w-6 text-destructive" />
+                        <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                      </div>
+                      <AlertDialogDescription className="sm:pl-8">
+                        This will permanently delete all your data, including your name and tasks. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleReset}>Reset App</AlertDialogAction>
+                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleLogout}>Logout</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
 
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </div>
       </div>
     </motion.div>
   );
