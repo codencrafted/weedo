@@ -18,9 +18,7 @@ export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
 
   const handleToggle = () => {
     if (isFuture) {
-      if (isShaking) return;
       setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 400);
       return;
     }
     onToggle(task.id);
@@ -28,11 +26,18 @@ export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
   
   const shakeVariants = {
     shake: {
-      x: [0, -6, 6, -6, 6, 0],
-      transition: { duration: 0.4, ease: "easeInOut" }
+      rotate: [0, -1.5, 1.5, -1.5, 1.5, 0],
+      x: [0, -3, 3, -3, 3, 0],
+      transition: {
+        type: "spring",
+        stiffness: 1000,
+        damping: 15,
+        mass: 0.5,
+      }
     },
     initial: {
-      x: 0
+      rotate: 0,
+      x: 0,
     }
   };
 
@@ -40,6 +45,7 @@ export default function TaskItem({ task, onToggle, isFuture }: TaskItemProps) {
     <motion.div
       variants={shakeVariants}
       animate={isShaking ? "shake" : "initial"}
+      onAnimationComplete={() => setIsShaking(false)}
       onClick={handleToggle}
       className={cn(
         "flex items-center justify-between py-2 transition-opacity duration-400",
