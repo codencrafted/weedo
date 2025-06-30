@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Pencil, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -38,12 +39,15 @@ export default function SettingsPage() {
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState<null | 'uncomplete' | 'logout'>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
 
   useEffect(() => {
     try {
       const storedName = localStorage.getItem('weedo-name');
       if (storedName) {
         setName(storedName);
+        setNewName(storedName);
         setInitials(getInitials(storedName));
       }
     } catch (error) {
@@ -52,6 +56,28 @@ export default function SettingsPage() {
         setIsLoading(false);
     }
   }, []);
+
+  const handleNameSave = () => {
+    if (newName.trim()) {
+      try {
+        const trimmedName = newName.trim();
+        localStorage.setItem('weedo-name', trimmedName);
+        setName(trimmedName);
+        setInitials(getInitials(trimmedName));
+        setIsEditingName(false);
+        toast({
+          title: "Name Updated",
+          description: "Your name has been successfully changed.",
+        });
+      } catch (error) {
+         toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not save your name.",
+        })
+      }
+    }
+  };
 
   const handleUncompleteAll = () => {
     try {
@@ -181,8 +207,44 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4 text-3xl">
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
-                  <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
+                  <AnimatePresence mode="wait">
+                  {isEditingName ? (
+                    <motion.div
+                      key="edit-name"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="flex items-center gap-2 w-full max-w-sm"
+                    >
+                      <Input
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleNameSave()}
+                        autoFocus
+                        className="text-center text-2xl font-semibold h-12"
+                      />
+                      <Button size="icon" onClick={handleNameSave} aria-label="Save name"><Check/></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)} aria-label="Cancel edit"><X/></Button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-name"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="relative group"
+                    >
+                      <div
+                        onClick={() => setIsEditingName(true)}
+                        className="flex items-center gap-2 cursor-pointer p-2"
+                      >
+                        <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
+                        <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
+                    </motion.div>
+                  )}
+                  </AnimatePresence>
                 </>
               )}
             </div>
@@ -190,7 +252,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-2 mt-4">
                  
                 <motion.div {...motionProps} className="rounded-lg">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base hover:bg-transparent p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'uncomplete' ? null : 'uncomplete')}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'uncomplete' ? null : 'uncomplete')}>
                         <RefreshCw className="mr-3 h-5 w-5" />
                         <div>
                             <p>Mark All Incomplete</p>
@@ -210,7 +272,7 @@ export default function SettingsPage() {
                 </AnimatePresence>
 
                 <motion.div {...motionProps} className="rounded-lg">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive hover:bg-transparent hover:text-destructive p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'logout' ? null : 'logout')}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive hover:text-destructive p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'logout' ? null : 'logout')}>
                         <LogOut className="mr-3 h-5 w-5" />
                         <div>
                            <p>Logout</p>
