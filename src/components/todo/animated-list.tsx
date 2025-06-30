@@ -11,11 +11,11 @@ const AnimatedItemWrapper: React.FC<{ children: ReactNode, index: number }> = ({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      initial={{ scale: 0.7, opacity: 0 }}
+      animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0 }}
       transition={{ 
         duration: 0.4, 
-        delay: inView ? index * 0.03 : 0, 
+        delay: inView ? index * 0.05 : 0, 
         ease: "easeOut" 
       }}
     >
@@ -82,7 +82,7 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
             style={{ opacity: topGradientOpacity }}
           />
           <div
-            className="absolute bottom-0 left-0 right-0 h-[50px] bg-gradient-to-t from-card to-transparent pointer-events-none transition-opacity duration-300"
+            className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-card to-transparent pointer-events-none transition-opacity duration-300"
             style={{ opacity: bottomGradientOpacity }}
           />
         </>
