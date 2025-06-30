@@ -57,7 +57,7 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   }
 
   return (
-    <Card>
+    <Card className="shadow-lg border-primary/20 transition-all duration-300 hover:shadow-xl hover:border-primary/40">
       <CardContent className="p-0">
          <AnimatedList>
             {tasks.map((task, index) => (

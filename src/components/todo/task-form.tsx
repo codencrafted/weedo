@@ -34,7 +34,7 @@ export default function TaskForm({ onAddTask }: TaskFormProps) {
       animate={{ scale: isFocused ? 1.02 : 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
-      <Card>
+      <Card className="shadow-lg border-primary/20">
         <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
             <Input
