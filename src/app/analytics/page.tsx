@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
       opacity: 1,
       transition: {
         staggerChildren: 0.1,
-        delayChildren: 0.2,
+        delayChildren: 0,
       },
     },
   };
@@ -156,4 +156,3 @@ export default function AnalyticsPage() {
     </motion.div>
   );
 }
-
