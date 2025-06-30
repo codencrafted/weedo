@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
+import { Expandable, ExpandableContent } from '@/components/ui/expandable';
 import {
   PopoverRoot,
   PopoverTrigger,
@@ -203,31 +204,23 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
                         </div>
                     </Button>
-                    <AnimatePresence>
-                      {showUncompleteConfirm && (
-                         <motion.div
-                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }}
-                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                          >
-                             <div className="rounded-lg border bg-card p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                    <div>
-                                        <p className="font-semibold">Are you sure?</p>
-                                        <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button variant="ghost" onClick={() => setShowUncompleteConfirm(false)}>Cancel</Button>
-                                    <Button onClick={() => { handleUncompleteAll(); setShowUncompleteConfirm(false); }}>Continue</Button>
-                                </div>
-                            </div>
-                         </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <Expandable expanded={showUncompleteConfirm}>
+                        <ExpandableContent>
+                           <div className="rounded-lg border bg-card p-4 mt-2">
+                              <div className="flex items-start gap-3">
+                                  <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                  <div>
+                                      <p className="font-semibold">Are you sure?</p>
+                                      <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
+                                  </div>
+                              </div>
+                              <div className="flex justify-end gap-2 mt-4">
+                                  <Button variant="ghost" onClick={() => setShowUncompleteConfirm(false)}>Cancel</Button>
+                                  <Button onClick={() => { handleUncompleteAll(); setShowUncompleteConfirm(false); }}>Continue</Button>
+                              </div>
+                          </div>
+                       </ExpandableContent>
+                    </Expandable>
                   </div>
                  
                   <div>
@@ -238,31 +231,23 @@ export default function SettingsPage() {
                            <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
                        </div>
                    </Button>
-                   <AnimatePresence>
-                      {showLogoutConfirm && (
-                         <motion.div
-                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                            animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }}
-                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                          >
-                             <div className="rounded-lg border bg-card p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                    <div>
-                                        <p className="font-semibold">Are you sure you want to log out?</p>
-                                        <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>Cancel</Button>
-                                    <Button variant="destructive" onClick={() => { handleLogout(); setShowLogoutConfirm(false); }}>Logout</Button>
-                                </div>
-                            </div>
-                         </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <Expandable expanded={showLogoutConfirm}>
+                        <ExpandableContent>
+                           <div className="rounded-lg border bg-card p-4 mt-2">
+                              <div className="flex items-start gap-3">
+                                  <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                  <div>
+                                      <p className="font-semibold">Are you sure you want to log out?</p>
+                                      <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
+                                  </div>
+                              </div>
+                              <div className="flex justify-end gap-2 mt-4">
+                                  <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>Cancel</Button>
+                                  <Button variant="destructive" onClick={() => { handleLogout(); setShowLogoutConfirm(false); }}>Logout</Button>
+                              </div>
+                          </div>
+                       </ExpandableContent>
+                    </Expandable>
                   </div>
               </div>
             </div>
