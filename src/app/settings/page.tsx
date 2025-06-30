@@ -147,7 +147,7 @@ export default function SettingsPage() {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                      <motion.div {...motionProps}>
-                        <Button variant="outline" className="w-full justify-start text-base">
+                        <Button variant="outline" className="w-full justify-start text-base hover:bg-transparent">
                             <RefreshCw className="mr-2 h-5 w-5" />
                             Mark All Tasks as Incomplete
                         </Button>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                     <motion.div {...motionProps}>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-base text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        className="w-full justify-start text-base text-destructive hover:bg-transparent hover:text-destructive"
                       >
                         <LogOut className="mr-2 h-5 w-5" />
                         Logout
