@@ -3,23 +3,27 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Pencil, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverForm,
+  PopoverInput,
+  PopoverFooter,
+  PopoverCloseButton,
+  PopoverSubmitButton,
+  PopoverHeader,
+  PopoverBody,
+  usePopover,
+} from "@/components/ui/popover-animated";
+
 
 const getInitials = (name: string | null): string => {
     if (!name) return '';
@@ -31,22 +35,53 @@ const getInitials = (name: string | null): string => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
+const ConfirmationContent = ({ title, description, onConfirm, confirmText, confirmVariant = "default" } : {
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    confirmVariant?: "default" | "destructive";
+}) => {
+    const { closePopover } = usePopover();
+
+    const handleConfirm = () => {
+        onConfirm();
+        closePopover();
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-card text-card-foreground">
+            <PopoverHeader>
+                <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                    <span className="text-base font-semibold">{title}</span>
+                </div>
+            </PopoverHeader>
+            <PopoverBody>
+                <p>{description}</p>
+            </PopoverBody>
+            <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
+                <PopoverCloseButton>
+                    <Button variant="ghost">Cancel</Button>
+                </PopoverCloseButton>
+                <Button variant={confirmVariant} onClick={handleConfirm}>{confirmText}</Button>
+            </PopoverFooter>
+        </div>
+    )
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [openDialog, setOpenDialog] = useState<null | 'uncomplete' | 'logout'>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState("");
 
   useEffect(() => {
     try {
       const storedName = localStorage.getItem('weedo-name');
       if (storedName) {
         setName(storedName);
-        setNewName(storedName);
         setInitials(getInitials(storedName));
       }
     } catch (error) {
@@ -56,14 +91,13 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleNameSave = () => {
+  const handleNameSave = (newName: string) => {
     if (newName.trim()) {
       try {
         const trimmedName = newName.trim();
         localStorage.setItem('weedo-name', trimmedName);
         setName(trimmedName);
         setInitials(getInitials(trimmedName));
-        setIsEditingName(false);
         toast({
           title: "Name Updated",
           description: "Your name has been successfully changed.",
@@ -97,8 +131,6 @@ export default function SettingsPage() {
         title: "Error",
         description: "Could not update tasks.",
       })
-    } finally {
-      setOpenDialog(null);
     }
   };
 
@@ -122,46 +154,6 @@ export default function SettingsPage() {
     }
   };
 
-  const motionProps = {
-    whileHover: { scale: 1.02 },
-    whileTap: { scale: 0.98 },
-    transition: { type: 'spring', stiffness: 400, damping: 17 }
-  };
-  
-  const ConfirmationCard = ({ title, description, onConfirm, onCancel, confirmText = "Continue", confirmVariant = "default" } : {
-    title: string;
-    description: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-    confirmText?: string;
-    confirmVariant?: "default" | "destructive";
-  }) => (
-     <motion.div
-      layout
-      initial={{ opacity: 0, height: 0, y: -10 }}
-      animate={{ opacity: 1, height: 'auto', y: 0 }}
-      exit={{ opacity: 0, height: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="overflow-hidden"
-    >
-      <Card className={cn("mt-2", confirmVariant === "destructive" ? "bg-destructive/10 border-destructive/30" : "bg-muted/50 border-border")}>
-        <CardHeader>
-            <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                <div>
-                    <CardTitle className="text-base">{title}</CardTitle>
-                    <CardDescription className="text-foreground/80">{description}</CardDescription>
-                </div>
-            </div>
-        </CardHeader>
-        <CardFooter className="justify-end gap-2 pb-4 pr-4 pt-0">
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-            <Button variant={confirmVariant} onClick={onConfirm}>{confirmText}</Button>
-        </CardFooter>
-      </Card>
-    </motion.div>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -173,7 +165,7 @@ export default function SettingsPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 self-start">
             <Link href="/" passHref>
-              <Button variant="ghost" className="hover:bg-transparent" asChild>
+              <Button variant="ghost" asChild>
                 <motion.div
                   className="flex items-center cursor-pointer"
                   initial="rest"
@@ -207,96 +199,81 @@ export default function SettingsPage() {
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-center w-full">
-                    <div className="flex items-center gap-1">
-                      <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditingName(!isEditingName)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                    </div>
+                     <PopoverRoot initialValue={name ?? ""}>
+                        <div className="flex items-center gap-1">
+                          <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
+                          <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Edit name">
+                                  <Pencil className="w-4 h-4" />
+                              </Button>
+                          </PopoverTrigger>
+                        </div>
+                        <PopoverContent className="w-80 h-auto">
+                          <PopoverForm onSubmit={handleNameSave}>
+                            <div className="flex flex-col h-full bg-card text-card-foreground">
+                                <PopoverHeader>Edit your name</PopoverHeader>
+                                <PopoverBody>
+                                    <PopoverInput placeholder="Enter your new name" />
+                                </PopoverBody>
+                                <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
+                                  <PopoverCloseButton>
+                                    <Button variant="ghost">Cancel</Button>
+                                  </PopoverCloseButton>
+                                  <PopoverSubmitButton>
+                                    <Check className="h-4 w-4 mr-2" /> Save
+                                  </PopoverSubmitButton>
+                                </PopoverFooter>
+                              </div>
+                          </PopoverForm>
+                        </PopoverContent>
+                      </PopoverRoot>
                     <p className="text-sm text-muted-foreground mt-1.5">Manage your app settings.</p>
-                     <AnimatePresence>
-                      {isEditingName && (
-                        <motion.div
-                          layout
-                          className="overflow-hidden mt-4 w-full"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3, ease: 'easeInOut' }}
-                        >
-                          <div className="p-4 border rounded-lg bg-muted/50 text-left">
-                            <h4 className="font-medium leading-none">Edit Name</h4>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Update your name below.
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleNameSave();
-                                    e.preventDefault();
-                                  }
-                                  if (e.key === 'Escape') setIsEditingName(false);
-                                }}
-                                autoFocus
-                                className="h-9"
-                              />
-                              <Button size="icon" className="h-9 w-9" onClick={handleNameSave} aria-label="Save name"><Check className="h-4 w-4"/></Button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </>
               )}
             </div>
             <div className="p-6 pt-0">
               <div className="flex flex-col gap-2 mt-4">
+                 <PopoverRoot>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto">
+                          <RefreshCw className="mr-3 h-5 w-5" />
+                          <div>
+                              <p>Mark All Incomplete</p>
+                              <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
+                          </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-96 h-auto">
+                      <ConfirmationContent
+                        title="Are you sure?"
+                        description="This will mark all of your tasks, across all days, as incomplete. This action cannot be undone."
+                        onConfirm={handleUncompleteAll}
+                        confirmText="Continue"
+                      />
+                    </PopoverContent>
+                 </PopoverRoot>
                  
-                <motion.div {...motionProps} className="rounded-lg">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'uncomplete' ? null : 'uncomplete')}>
-                        <RefreshCw className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Mark All Incomplete</p>
-                            <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
-                        </div>
-                    </Button>
-                </motion.div>
-                <AnimatePresence>
-                  {openDialog === 'uncomplete' && (
-                    <ConfirmationCard
-                      title="Are you sure?"
-                      description="This will mark all of your tasks, across all days, as incomplete. This action cannot be undone."
-                      onConfirm={handleUncompleteAll}
-                      onCancel={() => setOpenDialog(null)}
-                    />
-                  )}
-                </AnimatePresence>
-
-                <motion.div {...motionProps} className="rounded-lg">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive hover:text-destructive p-3 h-auto" onClick={() => setOpenDialog(openDialog === 'logout' ? null : 'logout')}>
-                        <LogOut className="mr-3 h-5 w-5" />
-                        <div>
-                           <p>Logout</p>
-                           <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
-                       </div>
-                   </Button>
-                </motion.div>
-                <AnimatePresence>
-                  {openDialog === 'logout' && (
-                    <ConfirmationCard
-                      title="Are you sure you want to log out?"
-                      description="This will permanently delete all your data, including your name and tasks. This action cannot be undone."
-                      onConfirm={handleLogout}
-                      onCancel={() => setOpenDialog(null)}
-                      confirmText="Logout"
-                      confirmVariant="destructive"
-                    />
-                  )}
-                </AnimatePresence>
+                 <PopoverRoot>
+                    <PopoverTrigger asChild>
+                       <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto">
+                          <LogOut className="mr-3 h-5 w-5" />
+                          <div>
+                             <p>Logout</p>
+                             <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
+                         </div>
+                     </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-96 h-auto">
+                       <ConfirmationContent
+                        title="Are you sure you want to log out?"
+                        description="This will permanently delete all your data, including your name and tasks. This action cannot be undone."
+                        onConfirm={handleLogout}
+                        confirmText="Logout"
+                        confirmVariant="destructive"
+                      />
+                    </PopoverContent>
+                 </PopoverRoot>
               </div>
             </div>
           </div>
