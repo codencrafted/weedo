@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Pencil, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,7 +21,6 @@ import {
   PopoverSubmitButton,
   PopoverHeader,
   PopoverBody,
-  usePopover,
 } from "@/components/ui/popover-animated";
 
 
@@ -35,47 +34,14 @@ const getInitials = (name: string | null): string => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
-const ConfirmationContent = ({ title, description, onConfirm, confirmText, confirmVariant = "default" } : {
-    title: string;
-    description: string;
-    onConfirm: () => void;
-    confirmText?: string;
-    confirmVariant?: "default" | "destructive";
-}) => {
-    const { closePopover } = usePopover();
-
-    const handleConfirm = () => {
-        onConfirm();
-        closePopover();
-    };
-
-    return (
-        <div className="flex flex-col h-full bg-card text-card-foreground">
-            <PopoverHeader>
-                <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                    <span className="text-base font-semibold">{title}</span>
-                </div>
-            </PopoverHeader>
-            <PopoverBody>
-                <p>{description}</p>
-            </PopoverBody>
-            <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
-                <PopoverCloseButton asChild>
-                    <Button variant="ghost" type="button">Cancel</Button>
-                </PopoverCloseButton>
-                <Button variant={confirmVariant} onClick={handleConfirm}>{confirmText}</Button>
-            </PopoverFooter>
-        </div>
-    )
-}
-
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showUncompleteConfirm, setShowUncompleteConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     try {
@@ -165,7 +131,7 @@ export default function SettingsPage() {
       <div className="w-full max-w-md">
         <div className="mb-6 self-start">
             <Link href="/" passHref>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" className="hover:bg-transparent" asChild>
                 <motion.div
                   className="flex items-center cursor-pointer"
                   initial="rest"
@@ -200,14 +166,9 @@ export default function SettingsPage() {
                   </Avatar>
                   <div className="flex flex-col items-center w-full">
                      <PopoverRoot initialValue={name ?? ""}>
-                        <div className="flex items-center gap-1">
-                          <h2 className="text-2xl font-semibold leading-none tracking-tight">{name}</h2>
-                          <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Edit name">
-                                  <Pencil className="w-4 h-4" />
-                              </Button>
-                          </PopoverTrigger>
-                        </div>
+                        <PopoverTrigger asChild>
+                          <h2 className="text-2xl font-semibold leading-none tracking-tight cursor-pointer hover:text-primary transition-colors">{name}</h2>
+                        </PopoverTrigger>
                         <PopoverContent className="w-80 h-auto">
                           <PopoverForm onSubmit={handleNameSave}>
                             <div className="flex flex-col h-full bg-card text-card-foreground">
@@ -234,46 +195,75 @@ export default function SettingsPage() {
             </div>
             <div className="p-6 pt-0">
               <div className="flex flex-col gap-2 mt-4">
-                 <PopoverRoot>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto">
-                          <RefreshCw className="mr-3 h-5 w-5" />
-                          <div>
-                              <p>Mark All Incomplete</p>
-                              <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
-                          </div>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96 h-auto">
-                      <ConfirmationContent
-                        title="Are you sure?"
-                        description="This will mark all of your tasks, across all days, as incomplete. This action cannot be undone."
-                        onConfirm={handleUncompleteAll}
-                        confirmText="Continue"
-                      />
-                    </PopoverContent>
-                 </PopoverRoot>
+                  <div>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto" onClick={() => setShowUncompleteConfirm(p => !p)}>
+                        <RefreshCw className="mr-3 h-5 w-5" />
+                        <div>
+                            <p>Mark All Incomplete</p>
+                            <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
+                        </div>
+                    </Button>
+                    <AnimatePresence>
+                      {showUncompleteConfirm && (
+                         <motion.div
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }}
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                             <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                    <div>
+                                        <p className="font-semibold">Are you sure?</p>
+                                        <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <Button variant="ghost" onClick={() => setShowUncompleteConfirm(false)}>Cancel</Button>
+                                    <Button onClick={() => { handleUncompleteAll(); setShowUncompleteConfirm(false); }}>Continue</Button>
+                                </div>
+                            </div>
+                         </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                  
-                 <PopoverRoot>
-                    <PopoverTrigger asChild>
-                       <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto">
-                          <LogOut className="mr-3 h-5 w-5" />
-                          <div>
-                             <p>Logout</p>
-                             <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
-                         </div>
-                     </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96 h-auto">
-                       <ConfirmationContent
-                        title="Are you sure you want to log out?"
-                        description="This will permanently delete all your data, including your name and tasks. This action cannot be undone."
-                        onConfirm={handleLogout}
-                        confirmText="Logout"
-                        confirmVariant="destructive"
-                      />
-                    </PopoverContent>
-                 </PopoverRoot>
+                  <div>
+                     <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto" onClick={() => setShowLogoutConfirm(p => !p)}>
+                        <LogOut className="mr-3 h-5 w-5" />
+                        <div>
+                           <p>Logout</p>
+                           <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
+                       </div>
+                   </Button>
+                   <AnimatePresence>
+                      {showLogoutConfirm && (
+                         <motion.div
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: '0.5rem' }}
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                             <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                    <div>
+                                        <p className="font-semibold">Are you sure you want to log out?</p>
+                                        <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <Button variant="ghost" onClick={() => setShowLogoutConfirm(false)}>Cancel</Button>
+                                    <Button variant="destructive" onClick={() => { handleLogout(); setShowLogoutConfirm(false); }}>Logout</Button>
+                                </div>
+                            </div>
+                         </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
               </div>
             </div>
           </div>

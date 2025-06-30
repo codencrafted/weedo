@@ -113,7 +113,7 @@ export function PopoverTrigger({ children, className, asChild = false }: Popover
       key="button"
       layoutId={`popover-${uniqueId}`}
       className={cn(
-        !asChild && "flex h-9 items-center border border-zinc-950/10 bg-white px-3 text-zinc-950 dark:border-zinc-50/10 dark:bg-zinc-700 dark:text-zinc-50",
+        !asChild && "flex h-9 items-center border border-input bg-background px-3 text-foreground",
         className
       )}
       style={{
