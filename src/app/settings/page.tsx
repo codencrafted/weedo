@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, Share2, QrCode, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
 import { Expandable, ExpandableContent } from '@/components/ui/expandable';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   PopoverRoot,
   PopoverTrigger,
@@ -23,6 +25,10 @@ import {
   PopoverHeader,
   PopoverBody,
 } from "@/components/ui/popover-animated";
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Html5Qrcode } from 'html5-qrcode';
+import QRCode from 'qrcode.react';
 
 
 const getInitials = (name: string | null): string => {
@@ -35,13 +41,26 @@ const getInitials = (name: string | null): string => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
+type SyncData = {
+  name: string;
+  tasks: Task[];
+};
+
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+  
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [openConfirmation, setOpenConfirmation] = useState<string | null>(null);
+
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [syncUrl, setSyncUrl] = useState('');
+  const [dataToImport, setDataToImport] = useState<SyncData | null>(null);
+  const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
     try {
@@ -56,6 +75,85 @@ export default function SettingsPage() {
         setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const syncDataRaw = searchParams.get('syncData');
+    if (syncDataRaw) {
+      try {
+        const decodedString = atob(syncDataRaw);
+        const parsedData: SyncData = JSON.parse(decodedString);
+        if (parsedData.name && Array.isArray(parsedData.tasks)) {
+          setDataToImport(parsedData);
+        } else {
+          throw new Error("Invalid sync data structure.");
+        }
+      } catch (error) {
+        console.error("Failed to parse sync data:", error);
+        toast({
+          variant: "destructive",
+          title: "Sync Failed",
+          description: "The sync link is invalid or corrupted.",
+        });
+      } finally {
+        router.replace('/settings', { scroll: false });
+      }
+    }
+  }, [searchParams, router, toast]);
+
+  useEffect(() => {
+    if (isImportDialogOpen) {
+      const qrScanner = new Html5Qrcode('qr-code-reader');
+      qrScannerRef.current = qrScanner;
+
+      const startScanner = async () => {
+        try {
+          await qrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+              stopScanner();
+              try {
+                const url = new URL(decodedText);
+                const syncDataRaw = url.searchParams.get('syncData');
+                if (!syncDataRaw) throw new Error("No sync data in QR code.");
+                const decodedString = atob(syncDataRaw);
+                const parsedData: SyncData = JSON.parse(decodedString);
+                 if (parsedData.name && Array.isArray(parsedData.tasks)) {
+                   setDataToImport(parsedData);
+                   setIsImportDialogOpen(false);
+                 } else {
+                   throw new Error("Invalid sync data structure in QR code.");
+                 }
+              } catch (err) {
+                 toast({
+                    variant: "destructive",
+                    title: "Invalid QR Code",
+                    description: "The scanned QR code does not contain valid sync data.",
+                 });
+              }
+            },
+            () => {}
+          );
+        } catch (err) {
+          toast({
+            variant: "destructive",
+            title: "Scanner Error",
+            description: "Could not start scanner. Please check camera permissions.",
+          });
+          setIsImportDialogOpen(false);
+        }
+      };
+
+      const stopScanner = () => {
+        if (qrScannerRef.current && qrScannerRef.current.isScanning) {
+          qrScannerRef.current.stop().catch(console.error);
+        }
+      };
+
+      startScanner();
+      return () => stopScanner();
+    }
+  }, [isImportDialogOpen, toast]);
 
   const handleNameSave = (newName: string) => {
     if (newName.trim()) {
@@ -117,6 +215,64 @@ export default function SettingsPage() {
         title: "Error",
         description: "Could not log out.",
       })
+    }
+  };
+
+  const handleGenerateSyncLink = () => {
+    try {
+      const storedName = localStorage.getItem('weedo-name');
+      const storedTasks = localStorage.getItem('weedo-tasks');
+      if (!storedName || !storedTasks) {
+        toast({
+          variant: "destructive",
+          title: "Cannot Sync",
+          description: "No data found to sync.",
+        });
+        return;
+      }
+      const data: SyncData = {
+        name: storedName,
+        tasks: JSON.parse(storedTasks),
+      };
+      const encodedData = btoa(JSON.stringify(data));
+      const url = `${window.location.origin}/settings?syncData=${encodedData}`;
+      setSyncUrl(url);
+      setIsExportDialogOpen(true);
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not generate sync link.",
+      });
+    }
+  };
+  
+  const handleCopyLink = () => {
+    if (!syncUrl) return;
+    navigator.clipboard.writeText(syncUrl).then(() => {
+      toast({ title: "Copied!", description: "Sync link copied to clipboard." });
+    });
+  };
+
+  const handleConfirmImport = () => {
+    if (!dataToImport) return;
+    try {
+      localStorage.setItem('weedo-name', dataToImport.name);
+      localStorage.setItem('weedo-tasks', JSON.stringify(dataToImport.tasks));
+      localStorage.setItem('weedo-tasks-initialized', 'true');
+      toast({
+        title: "Sync Complete!",
+        description: "Your data has been imported successfully.",
+      });
+      setDataToImport(null);
+      router.push('/');
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Import Failed',
+        description: 'Could not save the imported data.',
+      });
+       setDataToImport(null);
     }
   };
   
@@ -199,65 +355,139 @@ export default function SettingsPage() {
                 </>
               )}
             </div>
+            
             <div className="p-6 pt-0">
-              <div className="flex flex-col gap-2 mt-4">
-                  <div>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'uncomplete' ? null : 'uncomplete')}>
-                        <RefreshCw className="mr-3 h-5 w-5" />
+                <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Account</h3>
+                <div className="flex flex-col gap-1">
+                    <div>
+                        <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'uncomplete' ? null : 'uncomplete')}>
+                            <RefreshCw className="mr-3 h-5 w-5" />
+                            <div>
+                                <p>Mark All Incomplete</p>
+                                <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
+                            </div>
+                        </Button>
+                        <Expandable expanded={openConfirmation === 'uncomplete'}>
+                            <ExpandableContent>
+                               <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
+                                  <div className="flex items-start gap-3">
+                                      <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                      <div>
+                                          <p className="font-semibold">Are you sure?</p>
+                                          <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
+                                      </div>
+                                  </div>
+                                  <div className="flex justify-end gap-2 mt-4">
+                                      <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
+                                      <Button onClick={() => { handleUncompleteAll(); setOpenConfirmation(null); }}>Continue</Button>
+                                  </div>
+                              </motion.div>
+                           </ExpandableContent>
+                        </Expandable>
+                    </div>
+                 
+                    <div>
+                        <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'logout' ? null : 'logout')}>
+                            <LogOut className="mr-3 h-5 w-5" />
+                            <div>
+                               <p>Logout</p>
+                               <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
+                           </div>
+                       </Button>
+                        <Expandable expanded={openConfirmation === 'logout'}>
+                            <ExpandableContent>
+                               <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
+                                  <div className="flex items-start gap-3">
+                                      <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
+                                      <div>
+                                          <p className="font-semibold">Are you sure you want to log out?</p>
+                                          <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
+                                      </div>
+                                  </div>
+                                  <div className="flex justify-end gap-2 mt-4">
+                                      <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
+                                      <Button variant="destructive" onClick={() => { handleLogout(); setOpenConfirmation(null); }}>Logout</Button>
+                                  </div>
+                              </motion.div>
+                           </ExpandableContent>
+                        </Expandable>
+                    </div>
+                </div>
+            </div>
+
+            <Separator className="my-2"/>
+
+            <div className="p-6 pt-2">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Data Sync</h3>
+                <div className="flex flex-col gap-1">
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateSyncLink}>
+                        <Share2 className="mr-3 h-5 w-5" />
                         <div>
-                            <p>Mark All Incomplete</p>
-                            <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
+                            <p>Sync from This Device</p>
+                            <p className="text-xs text-muted-foreground font-normal">Generate a QR code or link to export your data.</p>
                         </div>
                     </Button>
-                    <Expandable expanded={openConfirmation === 'uncomplete'}>
-                        <ExpandableContent>
-                           <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
-                              <div className="flex items-start gap-3">
-                                  <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                  <div>
-                                      <p className="font-semibold">Are you sure?</p>
-                                      <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
-                                  </div>
-                              </div>
-                              <div className="flex justify-end gap-2 mt-4">
-                                  <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
-                                  <Button onClick={() => { handleUncompleteAll(); setOpenConfirmation(null); }}>Continue</Button>
-                              </div>
-                          </motion.div>
-                       </ExpandableContent>
-                    </Expandable>
-                  </div>
-                 
-                  <div>
-                     <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'logout' ? null : 'logout')}>
-                        <LogOut className="mr-3 h-5 w-5" />
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
+                        <QrCode className="mr-3 h-5 w-5" />
                         <div>
-                           <p>Logout</p>
-                           <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
-                       </div>
-                   </Button>
-                    <Expandable expanded={openConfirmation === 'logout'}>
-                        <ExpandableContent>
-                           <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
-                              <div className="flex items-start gap-3">
-                                  <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                  <div>
-                                      <p className="font-semibold">Are you sure you want to log out?</p>
-                                      <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
-                                  </div>
-                              </div>
-                              <div className="flex justify-end gap-2 mt-4">
-                                  <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
-                                  <Button variant="destructive" onClick={() => { handleLogout(); setOpenConfirmation(null); }}>Logout</Button>
-                              </div>
-                          </motion.div>
-                       </ExpandableContent>
-                    </Expandable>
-                  </div>
-              </div>
+                            <p>Sync to This Device</p>
+                            <p className="text-xs text-muted-foreground font-normal">Import data by scanning a QR code.</p>
+                        </div>
+                    </Button>
+                </div>
             </div>
-          </div>
+
+        </div>
       </div>
+      
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Sync From This Device</DialogTitle>
+                  <DialogDescription>
+                      Scan the QR code or copy the link on your new device to transfer your data.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-center py-4">
+                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />}
+              </div>
+              <div className="flex items-center space-x-2">
+                  <Input value={syncUrl} readOnly />
+                  <Button type="button" size="icon" onClick={handleCopyLink}>
+                      <Copy className="h-4 w-4" />
+                       <span className="sr-only">Copy Link</span>
+                  </Button>
+              </div>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Sync To This Device</DialogTitle>
+                  <DialogDescription>
+                      Point your camera at the QR code from your other device.
+                  </DialogDescription>
+              </DialogHeader>
+              <div id="qr-code-reader" className="w-full aspect-square rounded-md bg-muted mt-4 border" />
+          </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!dataToImport} onOpenChange={(open) => !open && setDataToImport(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Data Import</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      You are about to import tasks for "{dataToImport?.name}". This will overwrite all current data on this device. This action cannot be undone.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDataToImport(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleConfirmImport}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
     </motion.div>
   );
 }
