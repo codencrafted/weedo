@@ -75,6 +75,8 @@ export default function SettingsPage() {
   const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [syncUrl, setSyncUrl] = useState('');
+  const [qrBgColor, setQrBgColor] = useState('#FFFFFF');
+  const [qrFgColor, setQrFgColor] = useState('#09090b');
   const [dataToImport, setDataToImport] = useState<SyncData | null>(null);
   const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -115,6 +117,21 @@ export default function SettingsPage() {
       }
     }
   }, [searchParams, router, toast]);
+
+  useEffect(() => {
+    if (isQRCodeDialogOpen) {
+      // Resolve CSS variables to actual colors for the QR code library
+      try {
+        const bgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim();
+        const fgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
+        setQrBgColor(`hsl(${bgStyle})`);
+        setQrFgColor(`hsl(${fgStyle})`);
+      } catch (e) {
+        console.error("Could not compute QR colors", e);
+        // Fallback colors are already set in useState
+      }
+    }
+  }, [isQRCodeDialogOpen]);
 
   useEffect(() => {
     if (isImportDialogOpen) {
@@ -522,7 +539,7 @@ export default function SettingsPage() {
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center py-4">
-                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="hsl(var(--card))" fgColor="hsl(var(--card-foreground))" />}
+                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}
               </div>
               <div className="flex items-center space-x-2">
                   <Input value={syncUrl} readOnly />
