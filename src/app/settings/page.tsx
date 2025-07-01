@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Html5Qrcode } from 'html5-qrcode';
 import QRCode from 'qrcode.react';
+import { deflate, inflate } from 'pako';
 
 
 const getInitials = (name: string | null): string => {
@@ -46,6 +47,19 @@ type SyncData = {
   name: string;
   tasks: Task[];
 };
+
+const parseSyncData = (syncDataRaw: string, version: string | null): SyncData => {
+    if (version === 'pako') {
+      const binaryString = atob(syncDataRaw);
+      const charData = binaryString.split('').map((c) => c.charCodeAt(0));
+      const compressedData = new Uint8Array(charData);
+      const decompressedString = inflate(compressedData, { to: 'string' });
+      return JSON.parse(decompressedString);
+    }
+    const decodedString = atob(syncDataRaw);
+    return JSON.parse(decodedString);
+}
+
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -80,10 +94,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const syncDataRaw = searchParams.get('syncData');
+    const version = searchParams.get('v');
     if (syncDataRaw) {
       try {
-        const decodedString = atob(syncDataRaw);
-        const parsedData: SyncData = JSON.parse(decodedString);
+        const parsedData = parseSyncData(syncDataRaw, version);
         if (parsedData.name && Array.isArray(parsedData.tasks)) {
           setDataToImport(parsedData);
         } else {
@@ -117,9 +131,11 @@ export default function SettingsPage() {
               try {
                 const url = new URL(decodedText);
                 const syncDataRaw = url.searchParams.get('syncData');
+                const version = url.searchParams.get('v');
                 if (!syncDataRaw) throw new Error("No sync data in QR code.");
-                const decodedString = atob(syncDataRaw);
-                const parsedData: SyncData = JSON.parse(decodedString);
+                
+                const parsedData = parseSyncData(syncDataRaw, version);
+
                  if (parsedData.name && Array.isArray(parsedData.tasks)) {
                    setDataToImport(parsedData);
                    setIsImportDialogOpen(false);
@@ -236,8 +252,13 @@ export default function SettingsPage() {
         name: storedName,
         tasks: JSON.parse(storedTasks),
       };
-      const encodedData = btoa(JSON.stringify(data));
-      return `${window.location.origin}/settings?syncData=${encodedData}`;
+      
+      const jsonString = JSON.stringify(data);
+      const compressed = deflate(jsonString);
+      const binaryString = String.fromCharCode.apply(null, Array.from(compressed));
+      const encodedData = btoa(binaryString);
+      
+      return `${window.location.origin}/settings?syncData=${encodedData}&v=pako`;
     } catch (error) {
        toast({
         variant: "destructive",
@@ -501,7 +522,7 @@ export default function SettingsPage() {
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center py-4">
-                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />}
+                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="hsl(var(--card))" fgColor="hsl(var(--card-foreground))" />}
               </div>
               <div className="flex items-center space-x-2">
                   <Input value={syncUrl} readOnly />
