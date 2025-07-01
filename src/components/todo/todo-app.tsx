@@ -36,12 +36,17 @@ export default function TodoApp({ userId }: TodoAppProps) {
   const [name, setName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
+  const [centerDate, setCenterDate] = useState<Date | null>(null);
   const [slideDirection, setSlideDirection] = useState(0);
 
   const scrollRef = useRef<HTMLElement>(null);
   const [topGradientOpacity, setTopGradientOpacity] = useState(0);
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
+
+  useEffect(() => {
+    // Set date only on the client to avoid hydration mismatch
+    setCenterDate(startOfDay(new Date()));
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -122,6 +127,7 @@ export default function TodoApp({ userId }: TodoAppProps) {
   };
 
   const addTask = (text: string) => {
+    if (!centerDate) return;
     const newTask: Task = {
       id: crypto.randomUUID(),
       text,
@@ -139,6 +145,35 @@ export default function TodoApp({ userId }: TodoAppProps) {
     );
     updateTasksInDb(updatedTasks);
   };
+
+  if (isLoading || !centerDate) {
+    return (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
+            <header className="flex justify-between items-center mb-6 py-4">
+                <Skeleton className="w-10 h-10 rounded-md" />
+                <div className="flex items-center gap-2">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                </div>
+            </header>
+            <main className="flex-grow mt-6">
+                <div className="max-w-2xl mx-auto">
+                    <div className="flex justify-between items-center mb-4">
+                        <Skeleton className="w-10 h-10 rounded-md" />
+                        <Skeleton className="h-8 w-48 rounded-md" />
+                        <Skeleton className="w-10 h-10 rounded-md" />
+                    </div>
+                    <div className="space-y-4 pt-4">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                </div>
+            </main>
+            <footer className="mt-auto pt-8 z-20"><Skeleton className="h-16 w-full" /></footer>
+        </div>
+    );
+  }
 
   const tasksForDay = tasks
     .filter(task => {
@@ -184,35 +219,6 @@ export default function TodoApp({ userId }: TodoAppProps) {
   const rightArrowVariants = { rest: { x: 0 }, hover: { x: 2 } };
   const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
-
-  if (isLoading) {
-    return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
-            <header className="flex justify-between items-center mb-6 py-4">
-                <Skeleton className="w-10 h-10 rounded-md" />
-                <div className="flex items-center gap-2">
-                    <Skeleton className="w-8 h-8 rounded-full" />
-                    <Skeleton className="w-8 h-8 rounded-full" />
-                </div>
-            </header>
-            <main className="flex-grow mt-6">
-                <div className="max-w-2xl mx-auto">
-                    <div className="flex justify-between items-center mb-4">
-                        <Skeleton className="w-10 h-10 rounded-md" />
-                        <Skeleton className="h-8 w-48 rounded-md" />
-                        <Skeleton className="w-10 h-10 rounded-md" />
-                    </div>
-                    <div className="space-y-4 pt-4">
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                    </div>
-                </div>
-            </main>
-            <footer className="mt-auto pt-8 z-20"><Skeleton className="h-16 w-full" /></footer>
-        </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
