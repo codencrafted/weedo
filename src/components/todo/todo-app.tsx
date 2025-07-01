@@ -48,6 +48,49 @@ export default function TodoApp({ userId }: TodoAppProps) {
     setCenterDate(startOfDay(new Date()));
   }, []);
 
+  // This effect handles the daily task initialization
+  useEffect(() => {
+    if (!userId || !centerDate) return;
+
+    const initializeDailyTasks = async () => {
+        const dateStr = format(centerDate, 'yyyy-MM-dd');
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) return;
+
+        const data = userDoc.data();
+        const initializedDays = data.initializedDays || [];
+        const dailyTasks: string[] = data.dailyTasks || [];
+
+        // Only initialize for today or future dates, and only if not already initialized.
+        const isPast = isBefore(startOfDay(centerDate), startOfDay(new Date()));
+        if (dailyTasks.length > 0 && !initializedDays.includes(dateStr) && !isPast) {
+            
+            const newTasksForDay = dailyTasks.map((taskText: string) => ({
+                id: crypto.randomUUID(),
+                text: taskText,
+                completed: false,
+                createdAt: centerDate.toISOString(),
+                description: '',
+            }));
+
+            const allTasks = [...(data.tasks || []), ...newTasksForDay];
+            const newInitializedDays = [...initializedDays, dateStr];
+            
+            await updateDoc(userDocRef, {
+                tasks: allTasks,
+                initializedDays: newInitializedDays,
+            });
+        }
+    };
+
+    initializeDailyTasks().catch(err => {
+        console.error("Failed to initialize daily tasks:", err);
+        toast({ variant: 'destructive', title: 'Initialization Error', description: 'Could not set up daily tasks.' });
+    });
+  }, [userId, centerDate, toast]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -146,7 +189,50 @@ export default function TodoApp({ userId }: TodoAppProps) {
     updateTasksInDb(updatedTasks);
   };
 
-  if (isLoading || !centerDate) {
+  const tasksForDay = tasks
+    .filter(task => {
+      try {
+        return isSameDay(parseISO(task.createdAt), centerDate ?? new Date());
+      } catch {
+        return false;
+      }
+    });
+  
+  const incompleteTasks = tasksForDay.filter(task => !task.completed);
+  const completedTasks = tasksForDay.filter(task => task.completed);
+
+  const handleDayNavigation = (direction: 'prev' | 'next') => {
+      if (!centerDate) return;
+      if (direction === 'prev') {
+          setSlideDirection(-1);
+          setCenterDate(subDays(centerDate, 1));
+      } else {
+          setSlideDirection(1);
+          setCenterDate(addDays(centerDate, 1));
+      }
+  };
+
+  const handleReorder = (reorderedIncompleteTasks: Task[]) => {
+    if (!centerDate) return;
+    const tasksFromOtherDays = tasks.filter(task => {
+      try {
+        return !isSameDay(parseISO(task.createdAt), centerDate);
+      } catch {
+        return false;
+      }
+    });
+    const newTasks = [...reorderedIncompleteTasks, ...completedTasks, ...tasksFromOtherDays];
+    setTasks(newTasks); // Optimistic update
+    updateTasksInDb(newTasks);
+  };
+  
+  const navButtonVariants = {
+    rest: { scale: 1 },
+    hover: { scale: 1.1 },
+    tap: { scale: 0.95 },
+  };
+
+  if (!centerDate || isLoading) {
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
             <header className="flex justify-between items-center mb-6 py-4">
@@ -174,46 +260,6 @@ export default function TodoApp({ userId }: TodoAppProps) {
         </div>
     );
   }
-
-  const tasksForDay = tasks
-    .filter(task => {
-      try {
-        return isSameDay(parseISO(task.createdAt), centerDate);
-      } catch {
-        return false;
-      }
-    });
-  
-  const incompleteTasks = tasksForDay.filter(task => !task.completed);
-  const completedTasks = tasksForDay.filter(task => task.completed);
-
-  const handleDayNavigation = (direction: 'prev' | 'next') => {
-      if (direction === 'prev') {
-          setSlideDirection(-1);
-          setCenterDate(subDays(centerDate, 1));
-      } else {
-          setSlideDirection(1);
-          setCenterDate(addDays(centerDate, 1));
-      }
-  };
-
-  const handleReorder = (reorderedIncompleteTasks: Task[]) => {
-    const tasksFromOtherDays = tasks.filter(task => {
-      try {
-        return !isSameDay(parseISO(task.createdAt), centerDate);
-      } catch {
-        return false;
-      }
-    });
-    const newTasks = [...reorderedIncompleteTasks, ...completedTasks, ...tasksFromOtherDays];
-    updateTasksInDb(newTasks);
-  };
-  
-  const navButtonVariants = {
-    rest: { scale: 1 },
-    hover: { scale: 1.1 },
-    tap: { scale: 0.95 },
-  };
 
   const leftArrowVariants = { rest: { x: 0 }, hover: { x: -2 } };
   const rightArrowVariants = { rest: { x: 0 }, hover: { x: 2 } };

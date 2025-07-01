@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Download, Camera } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Download, Camera, ListTodo } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -309,6 +309,18 @@ export default function SettingsPage() {
                            </ExpandableContent>
                         </Expandable>
                     </div>
+                </div>
+            </div>
+
+            <Separator className="my-2"/>
+
+            <div className="p-6 pt-2">
+                <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Task Management</h3>
+                <div className="flex flex-col gap-1">
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => router.push('/initialize')}>
+                        <ListTodo className="mr-3 h-5 w-5" />
+                        <div><p>Daily Tasks</p><p className="text-xs text-muted-foreground font-normal">Set up tasks that repeat every day.</p></div>
+                    </Button>
                 </div>
             </div>
 
