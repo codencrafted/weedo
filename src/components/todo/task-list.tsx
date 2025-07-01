@@ -8,7 +8,6 @@ import { Card, CardContent } from '../ui/card';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
 import { Reorder } from 'framer-motion';
-import CompletedTaskList from './completed-task-list';
 
 type TaskListProps = {
   tasks: Task[];
@@ -32,10 +31,6 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
     );
   }
 
-  const completedTasks = tasks.filter(t => t.completed);
-  const incompleteTasks = tasks.filter(t => !t.completed);
-
-  const allIncompleteTasksDone = incompleteTasks.length === 0 && tasks.length > 0;
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
   const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
 
@@ -57,10 +52,12 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
     );
   }
 
+  const allIncompleteTasksDone = !tasks.some(t => !t.completed) && tasks.length > 0;
+
   return (
     <>
-      <Reorder.Group as="div" axis="y" values={incompleteTasks} onReorder={onReorder} className="p-2 md:p-4">
-          {incompleteTasks.map((task) => (
+      <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
+          {tasks.map((task) => (
              <TaskItem
                 key={task.id}
                 task={task}
@@ -74,10 +71,6 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
           ))}
       </Reorder.Group>
       
-      {completedTasks.length > 0 && (
-        <CompletedTaskList tasks={completedTasks} onToggleTask={onToggleTask} />
-      )}
-
       {allIncompleteTasksDone && !isFutureDate && !isPastDate && (
          <div className="text-center p-4">
             <p className="text-lg font-semibold text-foreground">All tasks for today are complete!</p>

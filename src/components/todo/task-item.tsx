@@ -54,6 +54,18 @@ export default function TaskItem({
     inView: { opacity: 1, scale: 1, transition: { type: 'spring', duration: 0.4 } },
   };
 
+  const handleMainClick = () => {
+    if (task.completed) {
+      if (!isFuture && !isPast) {
+        onToggle(task.id);
+      } else {
+        setIsShaking(true);
+      }
+    } else {
+      onToggleOpen(isOpen ? null : task.id);
+    }
+  };
+
   return (
     <Reorder.Item
       ref={ref}
@@ -61,6 +73,11 @@ export default function TaskItem({
       id={task.id}
       layout
       whileDrag={{ scale: 1.05, boxShadow: '0px 5px 15px rgba(0,0,0,0.1)' }}
+      onDragStart={() => {
+        if(task.completed && !isFuture && !isPast) {
+          onToggle(task.id);
+        }
+      }}
       variants={itemVariants}
       initial="initial"
       animate={isInView ? 'inView' : 'initial'}
@@ -93,7 +110,7 @@ export default function TaskItem({
             />
           </div>
           <div
-            onClick={() => onToggleOpen(isOpen ? null : task.id)}
+            onClick={handleMainClick}
             className={cn(
               "flex-grow text-lg transition-colors duration-300 cursor-pointer",
               task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
@@ -101,22 +118,24 @@ export default function TaskItem({
           >
             {task.text}
           </div>
-          <motion.button
-            layout
-            onPointerDown={(e) => { e.stopPropagation(); }}
-            onClick={() => onToggleOpen(isOpen ? null : task.id)}
-            className="p-1.5 rounded-md hover:bg-accent cursor-pointer"
-          >
-            {isOpen ? (
-              <X className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <Settings2 className="h-5 w-5 text-muted-foreground" />
-            )}
-          </motion.button>
+          {!task.completed && (
+            <motion.button
+              layout
+              onPointerDown={(e) => { e.stopPropagation(); }}
+              onClick={() => onToggleOpen(isOpen ? null : task.id)}
+              className="p-1.5 rounded-md hover:bg-accent cursor-pointer"
+            >
+              {isOpen ? (
+                <X className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <Settings2 className="h-5 w-5 text-muted-foreground" />
+              )}
+            </motion.button>
+          )}
         </div>
 
         <AnimatePresence>
-          {isOpen && (
+          {!task.completed && isOpen && (
             <motion.div
               key="content"
               initial={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}

@@ -161,11 +161,10 @@ export default function TodoApp({ userId }: TodoAppProps) {
       }
   };
 
-  const handleReorder = (reorderedIncompleteTasks: Task[]) => {
+  const handleReorder = (reorderedTasksForDay: Task[]) => {
     const otherDayTasks = tasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-    const completedTasksForDay = tasks.filter(task => isSameDay(parseISO(task.createdAt), centerDate) && task.completed);
-    const newOrderedTasks = [...otherDayTasks, ...reorderedIncompleteTasks, ...completedTasksForDay];
-    updateTasksInDb(newOrderedTasks);
+    const newTasks = [...otherDayTasks, ...reorderedTasksForDay];
+    updateTasksInDb(newTasks);
   };
   
   const navButtonVariants = {
