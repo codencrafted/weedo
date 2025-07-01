@@ -5,8 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence, useDragControls, Reorder, useInView } from 'framer-motion';
-import { Settings2, X, GripVertical } from 'lucide-react';
+import { motion, AnimatePresence, Reorder, useInView } from 'framer-motion';
+import { Settings2, X } from 'lucide-react';
 
 type TaskItemProps = {
   task: Task;
@@ -28,7 +28,6 @@ export default function TaskItem({
   isPast
 }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
-  const dragControls = useDragControls();
   const ref = useRef<HTMLLIElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
 
@@ -61,8 +60,6 @@ export default function TaskItem({
       ref={ref}
       value={task}
       id={task.id}
-      dragListener={false}
-      dragControls={dragControls}
       variants={itemVariants}
       initial="initial"
       animate={isInView ? "inView" : "initial"}
@@ -70,7 +67,7 @@ export default function TaskItem({
       layout
       transition={{ type: "spring", stiffness: 400, damping: 40 }}
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
         task.completed ? 'opacity-60' : 'opacity-100',
       )}
@@ -82,17 +79,7 @@ export default function TaskItem({
         onAnimationComplete={() => setIsShaking(false)}
         className="p-3"
       >
-        <div className="flex items-center gap-1">
-           <div
-              onPointerDown={(e) => {
-                if (!isFuture && !isPast) {
-                  dragControls.start(e);
-                }
-              }}
-              className={cn("p-2 text-muted-foreground/50 transition-colors", isFuture || isPast ? "cursor-not-allowed" : "cursor-grab hover:text-muted-foreground")}
-            >
-              <GripVertical className="h-5 w-5" />
-            </div>
+        <div className="flex items-center gap-3">
           <div onClick={handleCheckboxClick} className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}>
             <Checkbox
               id={`task-${task.id}`}

@@ -22,8 +22,12 @@ export default function CompletedTaskList({ tasks, onToggleTask }: { tasks: Task
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          className="bg-card rounded-lg border list-none mb-3 shadow-sm opacity-60 cursor-pointer"
+          className="bg-card rounded-lg border list-none mb-3 shadow-sm opacity-60 cursor-grab"
           onClick={() => onToggleTask(task.id)}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragStart={() => onToggleTask(task.id)}
         >
           <div className="p-3">
             <div className="flex items-center gap-3">
