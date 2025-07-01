@@ -12,8 +12,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { WeedoLogo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
+import { useToast } from "@/hooks/use-toast";
 
 type TodoAppProps = {
   userId: string;
@@ -28,6 +29,7 @@ const formatDateHeader = (date: Date): string => {
 
 export default function TodoApp({ userId }: TodoAppProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [name, setName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -43,19 +45,25 @@ export default function TodoApp({ userId }: TodoAppProps) {
     if (!userId) return;
 
     const userDocRef = doc(db, 'users', userId);
+    
+    // Initial fetch to check for existence
+    getDoc(userDocRef).then(docSnap => {
+        if (!docSnap.exists()) {
+            console.error("User document does not exist. Redirecting.");
+            localStorage.removeItem('weedo-user-id');
+            router.push('/');
+        }
+    }).catch(error => {
+        console.error("Error checking user document:", error);
+    });
+
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setName(data.name || '');
         // Ensure tasks are always an array
         const dbTasks = data.tasks || [];
-        // Sort tasks on retrieval to maintain consistent order
-        dbTasks.sort((a: Task, b: Task) => a.completed === b.completed ? 0 : a.completed ? 1 : -1);
         setTasks(dbTasks);
-      } else {
-        console.error("User document does not exist. Redirecting.");
-        localStorage.removeItem('weedo-user-id');
-        router.push('/');
       }
       setIsLoading(false);
     }, (error) => {
@@ -65,7 +73,7 @@ export default function TodoApp({ userId }: TodoAppProps) {
     });
 
     return () => unsubscribe();
-  }, [userId, router]);
+  }, [userId, router, toast]);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -139,7 +147,9 @@ export default function TodoApp({ userId }: TodoAppProps) {
       } catch {
         return false;
       }
-    });
+    })
+    .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
+
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -151,9 +161,10 @@ export default function TodoApp({ userId }: TodoAppProps) {
       }
   };
 
-  const handleReorder = (reorderedDayTasks: Task[]) => {
+  const handleReorder = (reorderedIncompleteTasks: Task[]) => {
     const otherDayTasks = tasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-    const newOrderedTasks = [...otherDayTasks, ...reorderedDayTasks];
+    const completedTasksForDay = tasks.filter(task => isSameDay(parseISO(task.createdAt), centerDate) && task.completed);
+    const newOrderedTasks = [...otherDayTasks, ...reorderedIncompleteTasks, ...completedTasksForDay];
     updateTasksInDb(newOrderedTasks);
   };
   
