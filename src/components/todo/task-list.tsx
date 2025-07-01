@@ -5,12 +5,10 @@ import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
-import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
-import { AnimatePresence, motion, Reorder } from 'framer-motion';
-import { Button } from '../ui/button';
-import { EyeOff } from 'lucide-react';
+import { motion, Reorder } from 'framer-motion';
+import CompletedTaskList from './completed-task-list';
 
 type TaskListProps = {
   tasks: Task[];
@@ -22,7 +20,6 @@ type TaskListProps = {
 };
 
 export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription, isLoading, centerDate, onReorder }: TaskListProps) {
-  const [showCompleted, setShowCompleted] = useState(false);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   
   if (isLoading) {
@@ -40,59 +37,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
 
   if (allTasksCompleted) {
-    return (
-      <AnimatePresence mode="wait">
-        {!showCompleted ? (
-          <motion.div
-            key="notifications"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25, bounce: 0.3 }}
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(event, info) => {
-              if (info.offset.y > 50) {
-                setShowCompleted(true);
-              }
-            }}
-            className="cursor-grab active:cursor-grabbing"
-          >
-            <NotificationsStack />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="completed-list"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-          >
-             <div className="flex justify-end p-2 pb-0">
-              <Button variant="ghost" size="sm" onClick={() => setShowCompleted(false)}>
-                <EyeOff className="mr-2 h-4 w-4"/>
-                Hide
-              </Button>
-            </div>
-            <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
-              {tasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggle={onToggleTask}
-                  onUpdateDescription={onUpdateTaskDescription}
-                  isOpen={openItemId === task.id}
-                  onToggleOpen={setOpenItemId}
-                  isFuture={isFutureDate}
-                  isPast={isPastDate}
-                />
-              ))}
-            </Reorder.Group>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
+    return <CompletedTaskList tasks={tasks} />;
   }
 
 

@@ -87,7 +87,7 @@ const NotificationsStack = () => {
         transition={{delay: 0.8}}
         className="text-sm text-muted-foreground mt-6"
       >
-        You've cleared your list for the day.
+        Click to see your completed tasks.
       </motion.p>
     </motion.div>
   );
