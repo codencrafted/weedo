@@ -7,7 +7,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
-import { motion, Reorder } from 'framer-motion';
+import { Reorder } from 'framer-motion';
 import CompletedTaskList from './completed-task-list';
 
 type TaskListProps = {
@@ -32,13 +32,12 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
     );
   }
 
-  const allTasksCompleted = tasks.length > 0 && tasks.every(task => task.completed);
+  const completedTasks = tasks.filter(t => t.completed);
+  const incompleteTasks = tasks.filter(t => !t.completed);
+
+  const allIncompleteTasksDone = incompleteTasks.length === 0 && tasks.length > 0;
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
   const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
-
-  if (allTasksCompleted) {
-    return <CompletedTaskList tasks={tasks} />;
-  }
 
 
   if (tasks.length === 0) {
@@ -59,19 +58,32 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   }
 
   return (
-    <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
-        {tasks.map((task) => (
-           <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={onToggleTask}
-              onUpdateDescription={onUpdateTaskDescription}
-              isOpen={openItemId === task.id}
-              onToggleOpen={setOpenItemId}
-              isFuture={isFutureDate}
-              isPast={isPastDate}
-            />
-        ))}
-    </Reorder.Group>
+    <>
+      <Reorder.Group as="div" axis="y" values={incompleteTasks} onReorder={onReorder} className="p-2 md:p-4">
+          {incompleteTasks.map((task) => (
+             <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={onToggleTask}
+                onUpdateDescription={onUpdateTaskDescription}
+                isOpen={openItemId === task.id}
+                onToggleOpen={setOpenItemId}
+                isFuture={isFutureDate}
+                isPast={isPastDate}
+              />
+          ))}
+      </Reorder.Group>
+      
+      {completedTasks.length > 0 && (
+        <CompletedTaskList tasks={completedTasks} />
+      )}
+
+      {allIncompleteTasksDone && !isFutureDate && !isPastDate && (
+         <div className="text-center p-4">
+            <p className="text-lg font-semibold text-foreground">All tasks for today are complete!</p>
+            <p className="text-muted-foreground">Great job!</p>
+         </div>
+      )}
+    </>
   );
 }

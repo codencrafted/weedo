@@ -66,7 +66,7 @@ export default function TaskItem({
       
       variants={taskVariants}
       initial="initial"
-      animate={!isInView ? "initial" : task.completed ? "completed" : "inView"}
+      animate={!isInView ? "initial" : "inView"}
       transition={{ duration: 0.4, ease: "easeOut" }}
 
       className={cn(

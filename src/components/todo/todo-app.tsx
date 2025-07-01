@@ -88,6 +88,10 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   }, [isLoading, centerDate, tasks]);
 
   const toggleTask = (id: string) => {
+    const updatedTasks = tasks.map(task =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+  
     const taskToToggle = tasks.find(t => t.id === id);
     if (taskToToggle && !taskToToggle.completed) {
       const allTasksForDay = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate));
@@ -97,10 +101,9 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
          setShowConfetti(true);
       }
     }
-    setTasks(tasks.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ));
+    setTasks(updatedTasks);
   };
+  
 
   const addTask = (text: string) => {
     const newTask: Task = {
@@ -110,7 +113,24 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       createdAt: centerDate.toISOString(),
       description: '',
     };
-    setTasks([newTask, ...tasks]);
+    setTasks(currentTasks => {
+        const tasksForDay = currentTasks.filter(task => isSameDay(parseISO(task.createdAt), centerDate));
+        const incompleteTasks = tasksForDay.filter(t => !t.completed);
+        const otherTasks = currentTasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
+        
+        // Find the index of the first task of the current day to insert the new task before it.
+        const firstTaskIndex = currentTasks.findIndex(t => t.id === tasksForDay[0]?.id);
+        
+        const newTasks = [...currentTasks];
+        // If there are tasks for the day, insert before the first one. Otherwise, just add it.
+        if (firstTaskIndex !== -1) {
+            newTasks.splice(firstTaskIndex, 0, newTask);
+        } else {
+            newTasks.unshift(newTask);
+        }
+        
+        return newTasks;
+    });
   };
   
   const updateTaskDescription = (id: string, description: string) => {
@@ -128,13 +148,9 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       } catch {
         return false;
       }
-    });
+    })
+    .sort((a, b) => (a.completed ? 1 : -1) - (b.completed ? 1 : -1));
 
-  // Sort tasks to show incomplete first, then completed.
-  const sortedTasksForDay = [
-    ...tasksForDay.filter(t => !t.completed),
-    ...tasksForDay.filter(t => t.completed),
-  ];
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -148,8 +164,9 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
 
   const handleReorder = (reorderedDayTasks: Task[]) => {
     setTasks(currentTasks => {
-      const tasksFromOtherDays = currentTasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-      return [...tasksFromOtherDays, ...reorderedDayTasks];
+      const otherDayTasks = currentTasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
+      const completedTasksForDay = tasksForDay.filter(t => t.completed);
+      return [...otherDayTasks, ...reorderedDayTasks, ...completedTasksForDay];
     });
   };
 
@@ -255,7 +272,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                   >
                     <TaskList
-                      tasks={sortedTasksForDay}
+                      tasks={tasksForDay}
                       onToggleTask={toggleTask}
                       onUpdateTaskDescription={updateTaskDescription}
                       isLoading={isLoading}
