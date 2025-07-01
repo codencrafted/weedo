@@ -5,7 +5,7 @@ import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { SausageDogAnimation } from './sausage-dog-animation';
-import { isAfter, startOfDay } from 'date-fns';
+import { isAfter, startOfDay, isBefore } from 'date-fns';
 import { Reorder } from 'framer-motion';
 
 type TaskListProps = {
@@ -31,6 +31,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   }
 
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
+  const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
 
   if (tasks.length === 0) {
     if (isFutureDate) {
@@ -46,22 +47,13 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
               key={task.id}
               task={task}
               onToggle={onToggleTask}
-              onUpdateDescription={onUpdateTaskDescription}
+              onUpdateTaskDescription={onUpdateTaskDescription}
               isOpen={openItemId === task.id}
               onToggleOpen={setOpenItemId}
               isFuture={isFutureDate}
-              isPast={!isFutureDate && !isToday(centerDate)}
+              isPast={isPastDate}
             />
         ))}
     </Reorder.Group>
   );
-}
-function isToday(date: Date): boolean {
-    return isSameDay(date, new Date());
-}
-
-function isSameDay(date1: Date, date2: Date): boolean {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
 }
