@@ -5,8 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence, Reorder, useInView } from 'framer-motion';
-import { Settings2, X } from 'lucide-react';
+import { motion, AnimatePresence, useDragControls, Reorder, useInView } from 'framer-motion';
+import { Settings2, X, GripVertical } from 'lucide-react';
 
 type TaskItemProps = {
   task: Task;
@@ -28,8 +28,9 @@ export default function TaskItem({
   isPast
 }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
+  const dragControls = useDragControls();
   const ref = useRef<HTMLLIElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.5 });
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -50,20 +51,9 @@ export default function TaskItem({
   };
 
   const itemVariants = {
-    initial: { opacity: 0, scale: 0.9 },
-    inView: { opacity: 1, scale: 1, transition: { type: 'spring', duration: 0.4 } },
-  };
-
-  const handleMainClick = () => {
-    if (task.completed) {
-      if (!isFuture && !isPast) {
-        onToggle(task.id);
-      } else {
-        setIsShaking(true);
-      }
-    } else {
-      onToggleOpen(isOpen ? null : task.id);
-    }
+    initial: { opacity: 0, y: 20 },
+    inView: { opacity: 1, y: 0, transition: { type: 'spring', duration: 0.5 } },
+    exit: { opacity: 0, x: -50, transition: { duration: 0.3 } },
   };
 
   return (
@@ -71,37 +61,39 @@ export default function TaskItem({
       ref={ref}
       value={task}
       id={task.id}
-      layout
-      whileDrag={{ scale: 1.05, boxShadow: '0px 5px 15px rgba(0,0,0,0.1)' }}
-      onDragStart={() => {
-        if(task.completed && !isFuture && !isPast) {
-          onToggle(task.id);
-        }
-      }}
+      dragListener={false}
+      dragControls={dragControls}
       variants={itemVariants}
       initial="initial"
-      animate={isInView ? 'inView' : 'initial'}
-      exit={{ opacity: 0, scale: 0.9 }}
+      animate={isInView ? "inView" : "initial"}
+      exit="exit"
+      layout
       transition={{ type: "spring", stiffness: 400, damping: 40 }}
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
-        task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
+        task.completed ? 'opacity-60' : 'opacity-100',
       )}
     >
       <motion.div
-        layout="position"
+        layout
         variants={shakeVariants}
         animate={isShaking ? "shake" : "initial"}
         onAnimationComplete={() => setIsShaking(false)}
         className="p-3"
       >
-        <div className="flex items-center gap-3">
-          <div
-            onPointerDown={(e) => { e.stopPropagation(); }}
-            onClick={handleCheckboxClick}
-            className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}
-          >
+        <div className="flex items-center gap-1">
+           <div
+              onPointerDown={(e) => {
+                if (!isFuture && !isPast) {
+                  dragControls.start(e);
+                }
+              }}
+              className={cn("p-2 text-muted-foreground/50 transition-colors", isFuture || isPast ? "cursor-not-allowed" : "cursor-grab hover:text-muted-foreground")}
+            >
+              <GripVertical className="h-5 w-5" />
+            </div>
+          <div onClick={handleCheckboxClick} className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}>
             <Checkbox
               id={`task-${task.id}`}
               checked={task.completed}
@@ -109,33 +101,30 @@ export default function TaskItem({
               aria-label={`Mark task "${task.text}" as ${task.completed ? 'not completed' : 'completed'}`}
             />
           </div>
-          <div
-            onClick={handleMainClick}
+          <label
+            onClick={() => onToggleOpen(isOpen ? null : task.id)}
             className={cn(
               "flex-grow text-lg transition-colors duration-300 cursor-pointer",
               task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
             )}
           >
             {task.text}
-          </div>
-          {!task.completed && (
-            <motion.button
-              layout
-              onPointerDown={(e) => { e.stopPropagation(); }}
-              onClick={() => onToggleOpen(isOpen ? null : task.id)}
-              className="p-1.5 rounded-md hover:bg-accent cursor-pointer"
-            >
-              {isOpen ? (
-                <X className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <Settings2 className="h-5 w-5 text-muted-foreground" />
-              )}
-            </motion.button>
-          )}
+          </label>
+          <motion.button
+            layout
+            onClick={() => onToggleOpen(isOpen ? null : task.id)}
+            className="p-1.5 rounded-md hover:bg-accent"
+          >
+            {isOpen ? (
+              <X className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <Settings2 className="h-5 w-5 text-muted-foreground" />
+            )}
+          </motion.button>
         </div>
 
         <AnimatePresence>
-          {!task.completed && isOpen && (
+          {isOpen && (
             <motion.div
               key="content"
               initial={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
@@ -143,15 +132,15 @@ export default function TaskItem({
               exit={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30, bounce: 0.5 }}
               className="overflow-hidden"
-              onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="pl-10 pr-2 pb-1">
+              <div className="pl-12 pr-2 pb-1">
                 <label className="text-xs font-medium text-muted-foreground ml-1">Notes</label>
                 <Textarea
                   value={task.description || ''}
                   onChange={(e) => onUpdateDescription(task.id, e.target.value)}
                   placeholder="Add some notes..."
                   className="mt-1 text-base border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 shadow-none bg-muted/50"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
             </motion.div>

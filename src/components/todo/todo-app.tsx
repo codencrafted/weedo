@@ -4,10 +4,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { Task } from '@/lib/types';
 import TaskList from './task-list';
 import TaskForm from './task-form';
+import CompletedTaskList from './completed-task-list';
 import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Settings, LineChart } from 'lucide-react';
-import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow } from 'date-fns';
+import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow, isBefore } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WeedoLogo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
@@ -46,7 +48,6 @@ export default function TodoApp({ userId }: TodoAppProps) {
 
     const userDocRef = doc(db, 'users', userId);
     
-    // Initial fetch to check for existence
     getDoc(userDocRef).then(docSnap => {
         if (!docSnap.exists()) {
             console.error("User document does not exist. Redirecting.");
@@ -61,7 +62,6 @@ export default function TodoApp({ userId }: TodoAppProps) {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setName(data.name || '');
-        // Ensure tasks are always an array
         const dbTasks = data.tasks || [];
         setTasks(dbTasks);
       }
@@ -113,9 +113,13 @@ export default function TodoApp({ userId }: TodoAppProps) {
     updateTasksInDb(updatedTasks);
   
     if (taskToToggle && !taskToToggle.completed) {
-      const allTasksForDay = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate));
-      const completedTasksForDay = allTasksForDay.filter(t => t.completed).length;
-      if (allTasksForDay.length > 0 && completedTasksForDay + 1 === allTasksForDay.length) {
+      const allTasksForDay = tasks.filter(t => {
+        try {
+          return isSameDay(parseISO(t.createdAt), centerDate);
+        } catch { return false; }
+      });
+      const allAreNowCompleted = allTasksForDay.every(t => t.id === id ? !t.completed : t.completed);
+      if (allTasksForDay.length > 0 && allAreNowCompleted) {
          setShowConfetti(true);
       }
     }
@@ -147,9 +151,10 @@ export default function TodoApp({ userId }: TodoAppProps) {
       } catch {
         return false;
       }
-    })
-    .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
-
+    });
+  
+  const incompleteTasks = tasksForDay.filter(task => !task.completed);
+  const completedTasks = tasksForDay.filter(task => task.completed);
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -161,9 +166,9 @@ export default function TodoApp({ userId }: TodoAppProps) {
       }
   };
 
-  const handleReorder = (reorderedTasksForDay: Task[]) => {
-    const otherDayTasks = tasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-    const newTasks = [...otherDayTasks, ...reorderedTasksForDay];
+  const handleReorder = (reorderedIncompleteTasks: Task[]) => {
+    const otherTasks = tasks.filter(task => !tasksForDay.some(t => t.id === task.id));
+    const newTasks = [...otherTasks, ...completedTasks, ...reorderedIncompleteTasks];
     updateTasksInDb(newTasks);
   };
   
@@ -175,6 +180,8 @@ export default function TodoApp({ userId }: TodoAppProps) {
 
   const leftArrowVariants = { rest: { x: 0 }, hover: { x: -2 } };
   const rightArrowVariants = { rest: { x: 0 }, hover: { x: 2 } };
+  const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
+  const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
 
   if (isLoading) {
     return (
@@ -260,12 +267,35 @@ export default function TodoApp({ userId }: TodoAppProps) {
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                   >
                     <TaskList
-                      tasks={tasksForDay}
+                      tasks={incompleteTasks}
                       onToggleTask={toggleTask}
                       onUpdateTaskDescription={updateTaskDescription}
                       isLoading={isLoading}
                       centerDate={centerDate}
                       onReorder={handleReorder}
+                    />
+
+                    {tasksForDay.length === 0 && !isFutureDate && (
+                      <Card className="shadow-none border-primary/20 transition-all duration-300 hover:border-primary/40">
+                        <CardContent className="p-10">
+                          <div className="text-center text-muted-foreground">
+                            <p className="text-lg">{isPastDate ? "History is written." : "All clear!"}</p>
+                            <p className="text-sm">{isPastDate ? "No tasks were recorded for this day." : "Add a task to get started."}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {incompleteTasks.length === 0 && completedTasks.length > 0 && !isFutureDate && (
+                      <div className="text-center p-4">
+                        <p className="text-lg font-semibold text-foreground">All tasks for today are complete!</p>
+                        <p className="text-muted-foreground">Great job!</p>
+                      </div>
+                    )}
+                    
+                    <CompletedTaskList
+                      tasks={completedTasks}
+                      onToggleTask={toggleTask}
                     />
                   </motion.div>
                 </AnimatePresence>

@@ -4,9 +4,8 @@ import React, { useState } from 'react';
 import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
-import { Card, CardContent } from '../ui/card';
 import { SausageDogAnimation } from './sausage-dog-animation';
-import { isAfter, startOfDay, isBefore } from 'date-fns';
+import { isAfter, startOfDay } from 'date-fns';
 import { Reorder } from 'framer-motion';
 
 type TaskListProps = {
@@ -23,7 +22,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 p-4">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
@@ -32,51 +31,37 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   }
 
   const isFutureDate = isAfter(startOfDay(centerDate), startOfDay(new Date()));
-  const isPastDate = isBefore(startOfDay(centerDate), startOfDay(new Date()));
-
 
   if (tasks.length === 0) {
     if (isFutureDate) {
       return <SausageDogAnimation />;
     }
-
-    return (
-      <Card className="shadow-none border-primary/20 transition-all duration-300 hover:border-primary/40">
-        <CardContent className="p-10">
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg">{isPastDate ? "History is written." : "All clear!"}</p>
-            <p className="text-sm">{isPastDate ? "No tasks were recorded for this day." : "No tasks for this day."}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
-  const allIncompleteTasksDone = !tasks.some(t => !t.completed) && tasks.length > 0;
-
   return (
-    <>
-      <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
-          {tasks.map((task) => (
-             <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={onToggleTask}
-                onUpdateDescription={onUpdateTaskDescription}
-                isOpen={openItemId === task.id}
-                onToggleOpen={setOpenItemId}
-                isFuture={isFutureDate}
-                isPast={isPastDate}
-              />
-          ))}
-      </Reorder.Group>
-      
-      {allIncompleteTasksDone && !isFutureDate && !isPastDate && (
-         <div className="text-center p-4">
-            <p className="text-lg font-semibold text-foreground">All tasks for today are complete!</p>
-            <p className="text-muted-foreground">Great job!</p>
-         </div>
-      )}
-    </>
+    <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
+        {tasks.map((task) => (
+           <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={onToggleTask}
+              onUpdateDescription={onUpdateTaskDescription}
+              isOpen={openItemId === task.id}
+              onToggleOpen={setOpenItemId}
+              isFuture={isFutureDate}
+              isPast={!isFutureDate && !isToday(centerDate)}
+            />
+        ))}
+    </Reorder.Group>
   );
+}
+function isToday(date: Date): boolean {
+    return isSameDay(date, new Date());
+}
+
+function isSameDay(date1: Date, date2: Date): boolean {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
 }
