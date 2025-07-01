@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Task } from '@/lib/types';
 import TaskList from './task-list';
 import TaskForm from './task-form';
@@ -33,6 +33,17 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
   const [slideDirection, setSlideDirection] = useState(0);
 
+  const scrollRef = useRef<HTMLElement>(null);
+  const [showTopGradient, setShowTopGradient] = useState(false);
+  const [showBottomGradient, setShowBottomGradient] = useState(true);
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    setShowTopGradient(scrollTop > 50);
+    const bottomDistance = scrollHeight - (scrollTop + clientHeight);
+    setShowBottomGradient(bottomDistance > 50);
+  };
+
   useEffect(() => {
     let initialTasks: Task[] = [];
     try {
@@ -58,6 +69,19 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       }
     }
   }, [tasks, isLoading]);
+
+  useEffect(() => {
+    const checkScroll = () => {
+      if (scrollRef.current) {
+        const { scrollHeight, clientHeight } = scrollRef.current;
+        setShowBottomGradient(scrollHeight > clientHeight);
+        setShowTopGradient(scrollRef.current.scrollTop > 50)
+      }
+    };
+    checkScroll();
+    const timer = setTimeout(checkScroll, 500);
+    return () => clearTimeout(timer);
+  }, [isLoading, centerDate, tasks]);
 
   const toggleTask = (id: string) => {
     const taskToToggle = tasks.find(t => t.id === id);
@@ -171,15 +195,12 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
         </div>
       </header>
       
-        <main className="flex-grow mt-6">
-            <motion.div
-                key="day"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="max-w-2xl mx-auto"
-              >
+        <main 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-grow mt-6 overflow-y-auto custom-scrollbar relative"
+        >
+            <div className="max-w-2xl mx-auto">
                 <div className="flex justify-between items-center mb-4">
                     <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
                       <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day" disabled={isPrevDisabled}>
@@ -234,10 +255,18 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                     />
                   </motion.div>
                 </AnimatePresence>
-              </motion.div>
+              </div>
+               <div
+                  className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none transition-opacity"
+                  style={{ opacity: showTopGradient ? 1 : 0 }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none transition-opacity z-10"
+                  style={{ opacity: showBottomGradient ? 1 : 0 }}
+                />
         </main>
 
-      <footer className="mt-auto pt-8">
+      <footer className="mt-auto pt-8 z-20">
         <TaskForm onAddTask={addTask} />
       </footer>
     </div>

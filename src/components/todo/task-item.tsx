@@ -4,8 +4,8 @@ import type { Task } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { useState, useRef } from 'react';
+import { motion, AnimatePresence, Reorder, useInView } from 'framer-motion';
 import { Settings2, X } from 'lucide-react';
 
 type TaskItemProps = {
@@ -28,6 +28,8 @@ export default function TaskItem({
   isPast
 }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
+  const ref = useRef<HTMLLIElement>(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -49,12 +51,15 @@ export default function TaskItem({
 
   return (
     <Reorder.Item
+      ref={ref}
       value={task}
       id={task.id}
       layout
       whileHover={{ y: -3, scale: 1.015 }}
       whileDrag={{ scale: 1.03, boxShadow: '0px 4px 15px rgba(0,0,0,0.1)' }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      initial={{ opacity: 0, y: 25 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 25 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
         "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
@@ -62,7 +67,6 @@ export default function TaskItem({
       )}
     >
       <motion.div
-        layout
         variants={shakeVariants}
         animate={isShaking ? "shake" : "initial"}
         onAnimationComplete={() => setIsShaking(false)}
