@@ -18,10 +18,10 @@ export default function CompletedTaskList({ tasks, onToggleTask }: { tasks: Task
         <motion.div
           key={task.id}
           layout
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className="bg-card rounded-lg border list-none mb-3 shadow-sm opacity-60 cursor-grab"
           onClick={() => onToggleTask(task.id)}
           drag="y"

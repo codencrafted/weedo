@@ -50,9 +50,9 @@ export default function TaskItem({
   };
 
   const itemVariants = {
-    initial: { opacity: 0, y: 20 },
-    inView: { opacity: 1, y: 0, transition: { type: 'spring', duration: 0.5 } },
-    exit: { opacity: 0, x: -50, transition: { duration: 0.3 } },
+    initial: { opacity: 0, y: 20, scale: 0.9 },
+    inView: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', duration: 0.5 } },
+    exit: { opacity: 0, scale: 0.5, transition: { duration: 0.3, ease: 'easeOut' } },
   };
 
   return (

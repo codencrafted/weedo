@@ -107,21 +107,17 @@ export default function TodoApp({ userId }: TodoAppProps) {
 
   const toggleTask = (id: string) => {
     const taskToToggle = tasks.find(t => t.id === id);
+    if (!taskToToggle) return;
+
+    const isCompleting = !taskToToggle.completed;
+
     const updatedTasks = tasks.map(task =>
       task.id === id ? { ...task, completed: !task.completed } : task
     );
     updateTasksInDb(updatedTasks);
   
-    if (taskToToggle && !taskToToggle.completed) {
-      const allTasksForDay = tasks.filter(t => {
-        try {
-          return isSameDay(parseISO(t.createdAt), centerDate);
-        } catch { return false; }
-      });
-      const allAreNowCompleted = allTasksForDay.every(t => t.id === id ? !t.completed : t.completed);
-      if (allTasksForDay.length > 0 && allAreNowCompleted) {
-         setShowConfetti(true);
-      }
+    if (isCompleting) {
+      setShowConfetti(true);
     }
   };
 
@@ -174,7 +170,7 @@ export default function TodoApp({ userId }: TodoAppProps) {
         return false;
       }
     });
-    const newTasks = [...tasksFromOtherDays, ...completedTasks, ...reorderedIncompleteTasks];
+    const newTasks = [...reorderedIncompleteTasks, ...completedTasks, ...tasksFromOtherDays];
     updateTasksInDb(newTasks);
   };
   
