@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Download } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Download, Camera } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import QRCode from 'qrcode.react';
 import { createShareLink } from '@/app/actions/share';
+import { Html5Qrcode } from 'html5-qrcode';
 
 
 const getInitials = (name: string | null): string => {
@@ -42,10 +43,14 @@ export default function SettingsPage() {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [syncUrl, setSyncUrl] = useState('');
   const [qrBgColor, setQrBgColor] = useState('#FFFFFF');
   const [qrFgColor, setQrFgColor] = useState('#09090b');
+  
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerContainerId = "qr-scanner-container";
 
   useEffect(() => {
     try {
@@ -74,6 +79,56 @@ export default function SettingsPage() {
       }
     }
   }, [isQRCodeDialogOpen]);
+
+  useEffect(() => {
+    if (!isScannerOpen) {
+      if (scannerRef.current?.isScanning) {
+        scannerRef.current.stop().catch(err => console.error("Failed to stop scanner", err));
+        scannerRef.current = null;
+      }
+      return;
+    }
+
+    const onScanSuccess = (decodedText: string) => {
+        setIsScannerOpen(false); // Close the dialog
+        handleImportFromUrl(decodedText);
+    };
+
+    const html5Qrcode = new Html5Qrcode(scannerContainerId);
+    scannerRef.current = html5Qrcode;
+
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            html5Qrcode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+                onScanSuccess,
+                () => { /* ignore */ }
+            ).catch(() => {
+                toast({
+                    variant: "destructive",
+                    title: "Camera Error",
+                    description: "Could not start camera. Please check permissions.",
+                });
+                setIsScannerOpen(false);
+            });
+        }
+    }).catch(() => {
+        toast({
+            variant: "destructive",
+            title: "Camera Not Found",
+            description: "No camera found on this device.",
+        });
+        setIsScannerOpen(false);
+    });
+
+    return () => {
+        if (scannerRef.current?.isScanning) {
+            scannerRef.current.stop().catch(err => console.error("Failed to stop scanner on cleanup", err));
+        }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScannerOpen]);
 
   const handleNameSave = (newName: string) => {
     if (newName.trim()) {
@@ -194,18 +249,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleImportFromLink = () => {
-    if (!importUrl.trim()) {
+  const handleImportFromUrl = (urlToImport: string) => {
+    if (!urlToImport.trim()) {
       toast({
         variant: "destructive",
         title: "Invalid Link",
-        description: "Please paste a valid share link.",
+        description: "The provided link is empty.",
       });
       return;
     }
 
     try {
-      const url = new URL(importUrl);
+      const url = new URL(urlToImport);
       const pathParts = url.pathname.split('/');
       const shareIndex = pathParts.indexOf('share');
       
@@ -213,6 +268,7 @@ export default function SettingsPage() {
         const id = pathParts[shareIndex + 1];
         setIsImportDialogOpen(false);
         setImportUrl('');
+        setIsScannerOpen(false);
         router.push(`/share/${id}`);
         return;
       }
@@ -227,6 +283,10 @@ export default function SettingsPage() {
         description: "The link you provided is not valid. Please check and try again.",
       });
     }
+  };
+
+  const handleManualImport = () => {
+    handleImportFromUrl(importUrl);
   };
 
   const handleCopyLink = () => {
@@ -401,6 +461,13 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground font-normal">Import a list from a shared link.</p>
                         </div>
                     </Button>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsScannerOpen(true)}>
+                        <Camera className="mr-3 h-5 w-5" />
+                        <div>
+                            <p>Import via QR Scan</p>
+                            <p className="text-xs text-muted-foreground font-normal">Scan a QR code to import a list.</p>
+                        </div>
+                    </Button>
                 </div>
             </div>
 
@@ -453,11 +520,25 @@ export default function SettingsPage() {
                     value={importUrl}
                     onChange={(e) => setImportUrl(e.target.value)}
                   />
-                  <Button type="button" onClick={handleImportFromLink}>
+                  <Button type="button" onClick={handleManualImport}>
                       Import
                   </Button>
               </div>
           </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Scan QR Code</DialogTitle>
+                <DialogDescription>
+                    Point your camera at a Weedo QR code to import a list.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 p-4 border rounded-lg bg-muted aspect-square flex items-center justify-center">
+              <div id={scannerContainerId} className="w-full h-full"></div>
+            </div>
+        </DialogContent>
       </Dialog>
 
     </motion.div>
