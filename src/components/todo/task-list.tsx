@@ -75,7 +75,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
       </Reorder.Group>
       
       {completedTasks.length > 0 && (
-        <CompletedTaskList tasks={completedTasks} />
+        <CompletedTaskList tasks={completedTasks} onToggleTask={onToggleTask} />
       )}
 
       {allIncompleteTasksDone && !isFutureDate && !isPastDate && (
