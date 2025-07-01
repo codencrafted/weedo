@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -59,6 +60,7 @@ export default function SettingsPage() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [syncUrl, setSyncUrl] = useState('');
+  const [isDataTooLongForQR, setIsDataTooLongForQR] = useState(false);
   const [dataToImport, setDataToImport] = useState<SyncData | null>(null);
   const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -236,6 +238,14 @@ export default function SettingsPage() {
       };
       const encodedData = btoa(JSON.stringify(data));
       const url = `${window.location.origin}/settings?syncData=${encodedData}`;
+      
+      const QR_CODE_MAX_LENGTH = 2000;
+      if (url.length > QR_CODE_MAX_LENGTH) {
+        setIsDataTooLongForQR(true);
+      } else {
+        setIsDataTooLongForQR(false);
+      }
+
       setSyncUrl(url);
       setIsExportDialogOpen(true);
     } catch (error) {
@@ -445,11 +455,22 @@ export default function SettingsPage() {
               <DialogHeader>
                   <DialogTitle>Sync From This Device</DialogTitle>
                   <DialogDescription>
-                      Scan the QR code or copy the link on your new device to transfer your data.
+                      {isDataTooLongForQR
+                        ? "Your data is too large for a QR Code. Please copy and use the link below to sync."
+                        : "Scan the QR code or copy the link on your new device to transfer your data."}
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center py-4">
-                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />}
+                  {isDataTooLongForQR ? (
+                    <div className="text-center p-8 bg-muted rounded-lg flex flex-col items-center gap-4">
+                      <AlertTriangle className="h-10 w-10 text-destructive" />
+                      <p className="text-sm font-medium text-muted-foreground">
+                        QR Code not available due to large data size.
+                      </p>
+                    </div>
+                  ) : (
+                    syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />
+                  )}
               </div>
               <div className="flex items-center space-x-2">
                   <Input value={syncUrl} readOnly />
@@ -491,3 +512,4 @@ export default function SettingsPage() {
     </motion.div>
   );
 }
+
