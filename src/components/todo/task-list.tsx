@@ -45,10 +45,10 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
         {!showCompleted ? (
           <motion.div
             key="notifications"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25, bounce: 0.3 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.2}
