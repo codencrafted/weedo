@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -41,6 +41,8 @@ export default function SettingsPage() {
 
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
   const [syncUrl, setSyncUrl] = useState('');
   const [qrBgColor, setQrBgColor] = useState('#FFFFFF');
   const [qrFgColor, setQrFgColor] = useState('#09090b');
@@ -189,6 +191,41 @@ export default function SettingsPage() {
     const url = await generateShareableData();
     if (url) {
         setIsQRCodeDialogOpen(true);
+    }
+  };
+
+  const handleImportFromLink = () => {
+    if (!importUrl.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Link",
+        description: "Please paste a valid share link.",
+      });
+      return;
+    }
+
+    try {
+      const url = new URL(importUrl);
+      const pathParts = url.pathname.split('/');
+      const shareIndex = pathParts.indexOf('share');
+      
+      if (shareIndex !== -1 && pathParts[shareIndex + 1]) {
+        const id = pathParts[shareIndex + 1];
+        setIsImportDialogOpen(false);
+        setImportUrl('');
+        router.push(`/share/${id}`);
+        return;
+      }
+      
+      throw new Error("Invalid URL format. Link must contain '/share/[id]'.");
+
+    } catch (error) {
+      console.error("Invalid URL provided:", error);
+      toast({
+        variant: "destructive",
+        title: "Invalid Link",
+        description: "The link you provided is not valid. Please check and try again.",
+      });
     }
   };
 
@@ -357,6 +394,13 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground font-normal">Generate a scannable QR code.</p>
                         </div>
                     </Button>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
+                        <Download className="mr-3 h-5 w-5" />
+                        <div>
+                            <p>Import from Link</p>
+                            <p className="text-xs text-muted-foreground font-normal">Import a list from a shared link.</p>
+                        </div>
+                    </Button>
                 </div>
             </div>
 
@@ -391,6 +435,27 @@ export default function SettingsPage() {
               </DialogHeader>
               <div className="flex justify-center py-4">
                   {syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}
+              </div>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Import from Link</DialogTitle>
+                  <DialogDescription>
+                      Paste a share link below to import the task list. This will overwrite your current data.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2 pt-4">
+                  <Input
+                    placeholder="https://..."
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                  />
+                  <Button type="button" onClick={handleImportFromLink}>
+                      Import
+                  </Button>
               </div>
           </DialogContent>
       </Dialog>
