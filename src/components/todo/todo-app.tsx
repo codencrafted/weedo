@@ -9,7 +9,7 @@ import { Confetti } from './confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Settings, LineChart } from 'lucide-react';
-import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow, isBefore } from 'date-fns';
+import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isYesterday, isTomorrow, isBefore, isAfter } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WeedoLogo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
@@ -167,8 +167,14 @@ export default function TodoApp({ userId }: TodoAppProps) {
   };
 
   const handleReorder = (reorderedIncompleteTasks: Task[]) => {
-    const otherTasks = tasks.filter(task => !tasksForDay.some(t => t.id === task.id));
-    const newTasks = [...otherTasks, ...completedTasks, ...reorderedIncompleteTasks];
+    const tasksFromOtherDays = tasks.filter(task => {
+      try {
+        return !isSameDay(parseISO(task.createdAt), centerDate);
+      } catch {
+        return false;
+      }
+    });
+    const newTasks = [...tasksFromOtherDays, ...completedTasks, ...reorderedIncompleteTasks];
     updateTasksInDb(newTasks);
   };
   
