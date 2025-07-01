@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -47,8 +48,6 @@ export default function SettingsPage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [syncUrl, setSyncUrl] = useState('');
-  const [qrBgColor, setQrBgColor] = useState('#FFFFFF');
-  const [qrFgColor, setQrFgColor] = useState('#09090b');
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerId = "qr-scanner-container";
@@ -76,19 +75,6 @@ export default function SettingsPage() {
     }
   }, [router]);
   
-  useEffect(() => {
-    if (isQRCodeDialogOpen) {
-      try {
-        const bgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim();
-        const fgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
-        setQrBgColor(`hsl(${bgStyle})`);
-        setQrFgColor(`hsl(${fgStyle})`);
-      } catch (e) {
-        console.error("Could not compute QR colors", e);
-      }
-    }
-  }, [isQRCodeDialogOpen]);
-
   useEffect(() => {
     if (!isScannerOpen) {
       if (scannerRef.current?.isScanning) {
@@ -128,7 +114,7 @@ export default function SettingsPage() {
             scannerRef.current.stop().catch(err => console.error("Failed to stop scanner on cleanup", err));
         }
     };
-  }, [isScannerOpen]);
+  }, [isScannerOpen, toast]);
 
   const handleNameSave = async (newName: string) => {
     if (newName.trim() && userId) {
@@ -366,7 +352,9 @@ export default function SettingsPage() {
       <Dialog open={isQRCodeDialogOpen} onOpenChange={setIsQRCodeDialogOpen}>
           <DialogContent>
               <DialogHeader><DialogTitle>Sync via QR Code</DialogTitle><DialogDescription>Scan this QR code on another device to sync it.</DialogDescription></DialogHeader>
-              <div className="flex justify-center py-4">{syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}</div>
+              <div className="flex justify-center py-4 bg-white p-4 rounded-md">
+                {syncUrl && <QRCode value={syncUrl} size={256} bgColor="#FFFFFF" fgColor="#000000" />}
+              </div>
           </DialogContent>
       </Dialog>
 
