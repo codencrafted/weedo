@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -6,24 +5,24 @@ import type { Task } from '@/lib/types';
 import TaskItem from './task-item';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
-import { Separator } from '../ui/separator';
 import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
-import AnimatedList from './animated-list';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import { Button } from '../ui/button';
 import { EyeOff } from 'lucide-react';
 
 type TaskListProps = {
   tasks: Task[];
   onToggleTask: (id: string) => void;
+  onUpdateTaskDescription: (id: string, description: string) => void;
   isLoading: boolean;
   centerDate: Date;
 };
 
-export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }: TaskListProps) {
+export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription, isLoading, centerDate }: TaskListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
   
   if (isLoading) {
     return (
@@ -75,18 +74,22 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
                 Hide
               </Button>
             </div>
-            <Card className="shadow-none border-0">
-              <CardContent className="p-0">
-                 <AnimatedList>
-                    {tasks.map((task, index) => (
-                      <div key={task.id}>
-                        <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} isPast={isPastDate} />
-                        {index < tasks.length - 1 && <Separator />}
-                      </div>
+            <LayoutGroup>
+                <motion.ul className="space-y-2 p-2 md:p-4">
+                    {tasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        onToggle={onToggleTask}
+                        onUpdateDescription={onUpdateTaskDescription}
+                        isOpen={openItemId === task.id}
+                        onToggleOpen={setOpenItemId}
+                        isFuture={isFutureDate}
+                        isPast={isPastDate}
+                      />
                     ))}
-                </AnimatedList>
-              </CardContent>
-            </Card>
+                </motion.ul>
+            </LayoutGroup>
           </motion.div>
         )}
       </AnimatePresence>
@@ -112,17 +115,21 @@ export default function TaskList({ tasks, onToggleTask, isLoading, centerDate }:
   }
 
   return (
-    <Card className="shadow-none border-primary/20 transition-all duration-300 hover:border-primary/40">
-      <CardContent className="p-0">
-         <AnimatedList>
-            {tasks.map((task, index) => (
-              <div key={task.id}>
-                <TaskItem task={task} onToggle={onToggleTask} isFuture={isFutureDate} isPast={isPastDate} />
-                {index < tasks.length - 1 && <Separator />}
-              </div>
+    <LayoutGroup>
+        <motion.ul className="space-y-2">
+            {tasks.map((task) => (
+               <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={onToggleTask}
+                  onUpdateDescription={onUpdateTaskDescription}
+                  isOpen={openItemId === task.id}
+                  onToggleOpen={setOpenItemId}
+                  isFuture={isFutureDate}
+                  isPast={isPastDate}
+                />
             ))}
-        </AnimatedList>
-      </CardContent>
-    </Card>
+        </motion.ul>
+    </LayoutGroup>
   );
 }

@@ -80,8 +80,17 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       text,
       completed: false,
       createdAt: centerDate.toISOString(),
+      description: '',
     };
     setTasks([newTask, ...tasks]);
+  };
+  
+  const updateTaskDescription = (id: string, description: string) => {
+    setTasks(currentTasks =>
+        currentTasks.map(task =>
+            task.id === id ? { ...task, description } : task
+        )
+    );
   };
 
   const selectedDayTasks = tasks
@@ -208,7 +217,13 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                     exit={{ opacity: 0, x: -slideDirection * 30 }}
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <TaskList tasks={selectedDayTasks} onToggleTask={toggleTask} isLoading={isLoading} centerDate={centerDate} />
+                    <TaskList
+                      tasks={selectedDayTasks}
+                      onToggleTask={toggleTask}
+                      onUpdateTaskDescription={updateTaskDescription}
+                      isLoading={isLoading}
+                      centerDate={centerDate}
+                    />
                   </motion.div>
                 </AnimatePresence>
               </motion.div>

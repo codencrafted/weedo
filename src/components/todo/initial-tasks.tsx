@@ -40,6 +40,7 @@ export default function InitialTasks({ name, onTasksSet }: InitialTasksProps) {
         text,
         completed: false,
         createdAt: date.toISOString(),
+        description: '',
       }));
       allNewTasks.push(...dailyTasks);
     });
