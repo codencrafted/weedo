@@ -8,9 +8,10 @@ import { Card, CardContent } from '../ui/card';
 import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
-import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { EyeOff } from 'lucide-react';
+import AnimatedList from './animated-list';
 
 type TaskListProps = {
   tasks: Task[];
@@ -74,22 +75,20 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
                 Hide
               </Button>
             </div>
-            <LayoutGroup>
-                <motion.ul className="space-y-2 p-2 md:p-4">
-                    {tasks.map((task) => (
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        onToggle={onToggleTask}
-                        onUpdateDescription={onUpdateTaskDescription}
-                        isOpen={openItemId === task.id}
-                        onToggleOpen={setOpenItemId}
-                        isFuture={isFutureDate}
-                        isPast={isPastDate}
-                      />
-                    ))}
-                </motion.ul>
-            </LayoutGroup>
+            <AnimatedList>
+              {tasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={onToggleTask}
+                  onUpdateDescription={onUpdateTaskDescription}
+                  isOpen={openItemId === task.id}
+                  onToggleOpen={setOpenItemId}
+                  isFuture={isFutureDate}
+                  isPast={isPastDate}
+                />
+              ))}
+            </AnimatedList>
           </motion.div>
         )}
       </AnimatePresence>
@@ -115,21 +114,19 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   }
 
   return (
-    <LayoutGroup>
-        <motion.ul className="space-y-2">
-            {tasks.map((task) => (
-               <TaskItem
-                  key={task.id}
-                  task={task}
-                  onToggle={onToggleTask}
-                  onUpdateDescription={onUpdateTaskDescription}
-                  isOpen={openItemId === task.id}
-                  onToggleOpen={setOpenItemId}
-                  isFuture={isFutureDate}
-                  isPast={isPastDate}
-                />
-            ))}
-        </motion.ul>
-    </LayoutGroup>
+    <AnimatedList>
+        {tasks.map((task) => (
+           <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={onToggleTask}
+              onUpdateDescription={onUpdateTaskDescription}
+              isOpen={openItemId === task.id}
+              onToggleOpen={setOpenItemId}
+              isFuture={isFutureDate}
+              isPast={isPastDate}
+            />
+        ))}
+    </AnimatedList>
   );
 }

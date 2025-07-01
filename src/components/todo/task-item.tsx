@@ -101,7 +101,7 @@ export default function TaskItem({
               initial={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
               animate={{ opacity: 1, height: 'auto', filter: "blur(0px)", marginTop: '1rem' }}
               exit={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
-              transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30, bounce: 0.5 }}
               className="overflow-hidden"
             >
               <div className="pl-10 pr-2 pb-1">
