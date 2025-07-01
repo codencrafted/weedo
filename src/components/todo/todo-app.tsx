@@ -100,8 +100,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       } catch {
         return false;
       }
-    })
-    .sort((a, b) => (a.completed === b.completed) ? 0 : a.completed ? 1 : -1);
+    });
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -111,6 +110,14 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
           setSlideDirection(1);
           setCenterDate(addDays(centerDate, 1));
       }
+  };
+
+  const handleReorder = (reorderedDayTasks: Task[]) => {
+    setTasks(currentTasks => {
+      const reorderedIds = new Set(reorderedDayTasks.map(t => t.id));
+      const tasksToKeep = currentTasks.filter(t => !reorderedIds.has(t.id));
+      return [...tasksToKeep, ...reorderedDayTasks];
+    });
   };
 
   const navButtonVariants = {
@@ -223,6 +230,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                       onUpdateTaskDescription={updateTaskDescription}
                       isLoading={isLoading}
                       centerDate={centerDate}
+                      onReorder={handleReorder}
                     />
                   </motion.div>
                 </AnimatePresence>

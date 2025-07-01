@@ -8,10 +8,9 @@ import { Card, CardContent } from '../ui/card';
 import NotificationsStack from './notifications-stack';
 import { SausageDogAnimation } from './sausage-dog-animation';
 import { isAfter, startOfDay, isBefore } from 'date-fns';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, Reorder } from 'framer-motion';
 import { Button } from '../ui/button';
 import { EyeOff } from 'lucide-react';
-import AnimatedList from './animated-list';
 
 type TaskListProps = {
   tasks: Task[];
@@ -19,18 +18,19 @@ type TaskListProps = {
   onUpdateTaskDescription: (id: string, description: string) => void;
   isLoading: boolean;
   centerDate: Date;
+  onReorder: (tasks: Task[]) => void;
 };
 
-export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription, isLoading, centerDate }: TaskListProps) {
+export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription, isLoading, centerDate, onReorder }: TaskListProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
       </div>
     );
   }
@@ -75,7 +75,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
                 Hide
               </Button>
             </div>
-            <AnimatedList>
+            <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
               {tasks.map((task) => (
                 <TaskItem
                   key={task.id}
@@ -88,7 +88,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
                   isPast={isPastDate}
                 />
               ))}
-            </AnimatedList>
+            </Reorder.Group>
           </motion.div>
         )}
       </AnimatePresence>
@@ -114,7 +114,7 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
   }
 
   return (
-    <AnimatedList>
+    <Reorder.Group as="div" axis="y" values={tasks} onReorder={onReorder} className="p-2 md:p-4">
         {tasks.map((task) => (
            <TaskItem
               key={task.id}
@@ -127,6 +127,6 @@ export default function TaskList({ tasks, onToggleTask, onUpdateTaskDescription,
               isPast={isPastDate}
             />
         ))}
-    </AnimatedList>
+    </Reorder.Group>
   );
 }

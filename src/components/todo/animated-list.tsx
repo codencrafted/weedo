@@ -1,140 +1,139 @@
-
 "use client";
 
-import React, { useRef, useState, useEffect, ReactNode, UIEvent } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  useSpring,
-} from "framer-motion";
+import type { Task } from '@/lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { motion, AnimatePresence, useDragControls, Reorder } from 'framer-motion';
+import { Settings2, X, GripVertical } from 'lucide-react';
 
-interface AnimatedListProps {
-  children: ReactNode;
-  className?: string;
-  showGradients?: boolean;
-}
+type TaskItemProps = {
+  task: Task;
+  onToggle: (id: string) => void;
+  onUpdateDescription: (id: string, description: string) => void;
+  isOpen: boolean;
+  onToggleOpen: (id: string | null) => void;
+  isFuture: boolean;
+  isPast: boolean;
+};
 
-const AnimatedList: React.FC<AnimatedListProps> = ({
-  children,
-  className = "",
-  showGradients = true,
-}) => {
-  const listRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [topGradientOpacity, setTopGradientOpacity] = useState<number>(0);
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState<number>(1);
-  const childrenArray = React.Children.toArray(children);
+export default function TaskItem({
+  task,
+  onToggle,
+  onUpdateDescription,
+  isOpen,
+  onToggleOpen,
+  isFuture,
+  isPast
+}: TaskItemProps) {
+  const [isShaking, setIsShaking] = useState(false);
+  const dragControls = useDragControls();
 
-  const { scrollY } = useScroll({ container: listRef });
-  const [maxScroll, setMaxScroll] = useState(0);
-
-  useEffect(() => {
-    const listEl = listRef.current;
-    const contentEl = contentRef.current;
-    if (!listEl || !contentEl) return;
-
-    const updateMaxScroll = () => {
-      const newMaxScroll = contentEl.offsetHeight - listEl.offsetHeight;
-      setMaxScroll(newMaxScroll > 0 ? newMaxScroll : 0);
-    };
-
-    updateMaxScroll();
-
-    const resizeObserver = new ResizeObserver(updateMaxScroll);
-    resizeObserver.observe(contentEl);
-    resizeObserver.observe(listEl);
-
-    return () => resizeObserver.disconnect();
-  }, [children]);
-
-  const overscrollY = useTransform(
-    scrollY,
-    [-100, 0, maxScroll, maxScroll + 100],
-    [50, 0, 0, -50]
-  );
-
-  const springY = useSpring(overscrollY, {
-    stiffness: 300,
-    damping: 30,
-    restDelta: 0.5,
-  });
-
-  const handleScroll = (e: UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } =
-      e.target as HTMLDivElement;
-    setTopGradientOpacity(Math.min(scrollTop / 50, 1));
-    const bottomDistance = scrollHeight - (scrollTop + clientHeight);
-    setBottomGradientOpacity(
-      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
-    );
-  };
-
-  useEffect(() => {
-    const listElement = listRef.current;
-    if (listElement) {
-      const { scrollHeight, clientHeight } = listElement;
-      if (scrollHeight <= clientHeight) {
-        setBottomGradientOpacity(0);
-      } else {
-        setBottomGradientOpacity(1);
-      }
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); 
+    if (isFuture || isPast) {
+      setIsShaking(true);
+      return;
     }
-  }, [children]);
-
-  const itemVariants = {
-    hidden: { scale: 0.8, opacity: 0 },
-    visible: (i: number) => ({
-      scale: 1,
-      opacity: 1,
-      transition: {
-        duration: 0.4,
-        delay: i * 0.05,
-        ease: "easeOut",
-      },
-    }),
+    onToggle(task.id);
+  };
+  
+  const shakeVariants = {
+    shake: {
+      rotate: [0, -1.5, 1.5, -1.5, 1.5, 0],
+      x: [0, -3, 3, -3, 3, 0],
+      transition: { type: "spring", stiffness: 1000, damping: 15, mass: 0.5 }
+    },
+    initial: { rotate: 0, x: 0 }
   };
 
   return (
-    <div className={`relative w-full ${className}`}>
-      <div
-        ref={listRef}
-        className="max-h-[45vh] overflow-y-auto hide-scrollbar p-2 md:p-4"
-        onScroll={handleScroll}
-      >
-        <motion.div ref={contentRef} style={{ y: springY }}>
-          {childrenArray.map((child, index) => (
-            <motion.div
-              layout
-              key={(child as React.ReactElement).key}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-              custom={index}
-              variants={itemVariants}
-              transition={{
-                layout: { duration: 0.5, type: 'spring', bounce: 0.4 }
-              }}
-            >
-              {child}
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-      {showGradients && (
-        <>
-          <div
-            className="absolute top-0 left-0 right-0 h-[50px] bg-gradient-to-b from-card to-transparent pointer-events-none transition-opacity duration-300"
-            style={{ opacity: topGradientOpacity }}
-          />
-          <div
-            className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-card to-transparent pointer-events-none transition-opacity duration-300"
-            style={{ opacity: bottomGradientOpacity }}
-          />
-        </>
+    <Reorder.Item
+      value={task}
+      id={task.id}
+      dragListener={false}
+      dragControls={dragControls}
+      layout
+      whileHover={{ y: -3, scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className={cn(
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300",
+        isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
+        task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
       )}
-    </div>
-  );
-};
+    >
+      <motion.div
+        layout
+        variants={shakeVariants}
+        animate={isShaking ? "shake" : "initial"}
+        onAnimationComplete={() => setIsShaking(false)}
+        className="p-3"
+      >
+        <div className="flex items-center gap-1">
+           <div
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                dragControls.start(e);
+              }}
+              className="cursor-grab p-2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              <GripVertical className="h-5 w-5" />
+            </div>
+          <div onClick={handleCheckboxClick} className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}>
+            <Checkbox
+              id={`task-${task.id}`}
+              checked={task.completed}
+              className="w-6 h-6 shrink-0 pointer-events-none"
+              aria-label={`Mark task "${task.text}" as ${task.completed ? 'not completed' : 'completed'}`}
+            />
+          </div>
+          <label
+            onClick={() => onToggleOpen(isOpen ? null : task.id)}
+            className={cn(
+              "flex-grow text-lg transition-colors duration-300 cursor-pointer",
+              task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
+            )}
+          >
+            {task.text}
+          </label>
+          <motion.button
+            layout
+            onClick={() => onToggleOpen(isOpen ? null : task.id)}
+            className="p-1.5 rounded-md hover:bg-accent"
+          >
+            {isOpen ? (
+              <X className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <Settings2 className="h-5 w-5 text-muted-foreground" />
+            )}
+          </motion.button>
+        </div>
 
-export default AnimatedList;
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
+              animate={{ opacity: 1, height: 'auto', filter: "blur(0px)", marginTop: '1rem' }}
+              exit={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30, bounce: 0.5 }}
+              className="overflow-hidden"
+            >
+              <div className="pl-12 pr-2 pb-1">
+                <label className="text-xs font-medium text-muted-foreground ml-1">Notes</label>
+                <Textarea
+                  value={task.description || ''}
+                  onChange={(e) => onUpdateDescription(task.id, e.target.value)}
+                  placeholder="Add some notes..."
+                  className="mt-1 text-base border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 shadow-none bg-muted/50"
+                  onClick={(e) => e.stopPropagation()} // Prevent card from closing when clicking textarea
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </Reorder.Item>
+  );
+}
