@@ -17,4 +17,15 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
+// In a real app, you would secure your database. For this demo, we leave it open.
+// Go to your Firebase project console -> Firestore Database -> Rules and set them to:
+// rules_version = '2';
+// service cloud.firestore {
+//   match /databases/{database}/documents {
+//     match /{document=**} {
+//       allow read, write: if true;
+//     }
+//   }
+// }
+
 export { app, db };

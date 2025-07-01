@@ -6,18 +6,32 @@ import { Button } from '@/components/ui/button';
 import { WeedoLogo } from '@/components/icons';
 import { ArrowRight } from 'lucide-react';
 import SplitText from './split-text';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, collection } from 'firebase/firestore';
 
 type NamePromptProps = {
-  onNameSet: (name: string) => void;
+  onNameSet: (userId: string) => void;
 };
 
 export default function NamePrompt({ onNameSet }: NamePromptProps) {
   const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      onNameSet(name);
+    if (name.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        const newDocRef = doc(collection(db, "users"));
+        await setDoc(newDocRef, {
+          name: name.trim(),
+          tasks: [],
+        });
+        onNameSet(newDocRef.id);
+      } catch (error) {
+        console.error("Error creating user in Firestore:", error);
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -40,13 +54,13 @@ export default function NamePrompt({ onNameSet }: NamePromptProps) {
               placeholder="Enter your name..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-             
               className="text-base"
+              autoFocus
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={!name.trim()}>
-            Get Started <ArrowRight className="ml-2" />
+          <Button type="submit" className="w-full" disabled={!name.trim() || isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Get Started'} <ArrowRight className="ml-2" />
           </Button>
         </form>
       </div>

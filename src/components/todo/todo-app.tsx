@@ -11,10 +11,12 @@ import { isSameDay, startOfDay, parseISO, subDays, addDays, format, isToday, isY
 import { motion, AnimatePresence } from 'framer-motion';
 import { WeedoLogo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { Skeleton } from '../ui/skeleton';
 
 type TodoAppProps = {
-  name: string;
-  isFirstSession?: boolean;
+  userId: string;
 };
 
 const formatDateHeader = (date: Date): string => {
@@ -24,10 +26,10 @@ const formatDateHeader = (date: Date): string => {
     return format(date, 'EEE, MMM d');
 };
 
-
-export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) {
+export default function TodoApp({ userId }: TodoAppProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [name, setName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [centerDate, setCenterDate] = useState(() => startOfDay(new Date()));
@@ -37,6 +39,34 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   const [topGradientOpacity, setTopGradientOpacity] = useState(0);
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    const userDocRef = doc(db, 'users', userId);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setName(data.name || '');
+        // Ensure tasks are always an array
+        const dbTasks = data.tasks || [];
+        // Sort tasks on retrieval to maintain consistent order
+        dbTasks.sort((a: Task, b: Task) => a.completed === b.completed ? 0 : a.completed ? 1 : -1);
+        setTasks(dbTasks);
+      } else {
+        console.error("User document does not exist. Redirecting.");
+        localStorage.removeItem('weedo-user-id');
+        router.push('/');
+      }
+      setIsLoading(false);
+    }, (error) => {
+        console.error("Firestore snapshot error:", error);
+        toast({ variant: 'destructive', title: 'Connection Error', description: 'Could not connect to the database.' });
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [userId, router]);
+
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     setTopGradientOpacity(Math.min(scrollTop / 50, 1));
@@ -45,32 +75,6 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
     );
   };
-
-  useEffect(() => {
-    let initialTasks: Task[] = [];
-    try {
-      const storedTasks = localStorage.getItem('weedo-tasks');
-      if (storedTasks) {
-        initialTasks = JSON.parse(storedTasks);
-      }
-    } catch (error) {
-      console.error("Could not parse tasks from local storage", error);
-      initialTasks = [];
-    }
-    
-    setTasks(initialTasks);
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem('weedo-tasks', JSON.stringify(tasks));
-      } catch (error) {
-        console.error("Could not save tasks to local storage", error);
-      }
-    }
-  }, [tasks, isLoading]);
 
   useEffect(() => {
     const checkScroll = () => {
@@ -87,23 +91,27 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
     return () => clearTimeout(timer);
   }, [isLoading, centerDate, tasks]);
 
+  const updateTasksInDb = async (newTasks: Task[]) => {
+    if (!userId) return;
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { tasks: newTasks });
+  };
+
   const toggleTask = (id: string) => {
+    const taskToToggle = tasks.find(t => t.id === id);
     const updatedTasks = tasks.map(task =>
       task.id === id ? { ...task, completed: !task.completed } : task
     );
+    updateTasksInDb(updatedTasks);
   
-    const taskToToggle = tasks.find(t => t.id === id);
     if (taskToToggle && !taskToToggle.completed) {
       const allTasksForDay = tasks.filter(t => isSameDay(parseISO(t.createdAt), centerDate));
       const completedTasksForDay = allTasksForDay.filter(t => t.completed).length;
-      
-      if (completedTasksForDay + 1 === allTasksForDay.length) {
+      if (allTasksForDay.length > 0 && completedTasksForDay + 1 === allTasksForDay.length) {
          setShowConfetti(true);
       }
     }
-    setTasks(updatedTasks);
   };
-  
 
   const addTask = (text: string) => {
     const newTask: Task = {
@@ -113,32 +121,15 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       createdAt: centerDate.toISOString(),
       description: '',
     };
-    setTasks(currentTasks => {
-        const tasksForDay = currentTasks.filter(task => isSameDay(parseISO(task.createdAt), centerDate));
-        const incompleteTasks = tasksForDay.filter(t => !t.completed);
-        const otherTasks = currentTasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-        
-        // Find the index of the first task of the current day to insert the new task before it.
-        const firstTaskIndex = currentTasks.findIndex(t => t.id === tasksForDay[0]?.id);
-        
-        const newTasks = [...currentTasks];
-        // If there are tasks for the day, insert before the first one. Otherwise, just add it.
-        if (firstTaskIndex !== -1) {
-            newTasks.splice(firstTaskIndex, 0, newTask);
-        } else {
-            newTasks.unshift(newTask);
-        }
-        
-        return newTasks;
-    });
+    const newTasks = [newTask, ...tasks];
+    updateTasksInDb(newTasks);
   };
   
   const updateTaskDescription = (id: string, description: string) => {
-    setTasks(currentTasks =>
-        currentTasks.map(task =>
-            task.id === id ? { ...task, description } : task
-        )
+    const updatedTasks = tasks.map(task =>
+        task.id === id ? { ...task, description } : task
     );
+    updateTasksInDb(updatedTasks);
   };
 
   const tasksForDay = tasks
@@ -148,9 +139,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       } catch {
         return false;
       }
-    })
-    .sort((a, b) => (a.completed ? 1 : -1) - (b.completed ? 1 : -1));
-
+    });
 
   const handleDayNavigation = (direction: 'prev' | 'next') => {
       if (direction === 'prev') {
@@ -163,30 +152,48 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   };
 
   const handleReorder = (reorderedDayTasks: Task[]) => {
-    setTasks(currentTasks => {
-      const otherDayTasks = currentTasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
-      const completedTasksForDay = tasksForDay.filter(t => t.completed);
-      return [...otherDayTasks, ...reorderedDayTasks, ...completedTasksForDay];
-    });
+    const otherDayTasks = tasks.filter(task => !isSameDay(parseISO(task.createdAt), centerDate));
+    const newOrderedTasks = [...otherDayTasks, ...reorderedDayTasks];
+    updateTasksInDb(newOrderedTasks);
   };
-
+  
   const navButtonVariants = {
     rest: { scale: 1 },
     hover: { scale: 1.1 },
     tap: { scale: 0.95 },
   };
 
-  const leftArrowVariants = {
-    rest: { x: 0 },
-    hover: { x: -2 },
-  };
+  const leftArrowVariants = { rest: { x: 0 }, hover: { x: -2 } };
+  const rightArrowVariants = { rest: { x: 0 }, hover: { x: 2 } };
 
-  const rightArrowVariants = {
-    rest: { x: 0 },
-    hover: { x: 2 },
-  };
-
-  const isPrevDisabled = isFirstSession && isToday(centerDate);
+  if (isLoading) {
+    return (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
+            <header className="flex justify-between items-center mb-6 py-4">
+                <Skeleton className="w-10 h-10 rounded-md" />
+                <div className="flex items-center gap-2">
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                    <Skeleton className="w-8 h-8 rounded-full" />
+                </div>
+            </header>
+            <main className="flex-grow mt-6">
+                <div className="max-w-2xl mx-auto">
+                    <div className="flex justify-between items-center mb-4">
+                        <Skeleton className="w-10 h-10 rounded-md" />
+                        <Skeleton className="h-8 w-48 rounded-md" />
+                        <Skeleton className="w-10 h-10 rounded-md" />
+                    </div>
+                    <div className="space-y-4 pt-4">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                </div>
+            </main>
+            <footer className="mt-auto pt-8 z-20"><Skeleton className="h-16 w-full" /></footer>
+        </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col min-h-screen">
@@ -194,45 +201,21 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
       <header className="flex justify-between items-center mb-6 py-4">
         <WeedoLogo className="w-10 h-10 text-primary" />
         <div className="flex items-center gap-2">
-             <motion.div
-                variants={navButtonVariants}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                onClick={() => router.push('/analytics')}
-                className="cursor-pointer"
-             >
-                <Button variant="ghost" size="icon" aria-label="Analytics" className="hover:bg-transparent">
-                    <LineChart className="h-6 w-6" />
-                </Button>
+             <motion.div variants={navButtonVariants} initial="rest" whileHover="hover" whileTap="tap" onClick={() => router.push('/analytics')} className="cursor-pointer">
+                <Button variant="ghost" size="icon" aria-label="Analytics" className="hover:bg-transparent"><LineChart className="h-6 w-6" /></Button>
             </motion.div>
-             <motion.div
-                variants={navButtonVariants}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                onClick={() => router.push('/settings')}
-                className="cursor-pointer"
-             >
-                <Button variant="ghost" size="icon" aria-label="Settings" className="hover:bg-transparent">
-                    <Settings className="h-6 w-6" />
-                </Button>
+             <motion.div variants={navButtonVariants} initial="rest" whileHover="hover" whileTap="tap" onClick={() => router.push('/settings')} className="cursor-pointer">
+                <Button variant="ghost" size="icon" aria-label="Settings" className="hover:bg-transparent"><Settings className="h-6 w-6" /></Button>
             </motion.div>
         </div>
       </header>
       
-        <main 
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex-grow mt-6 overflow-y-auto custom-scrollbar relative"
-        >
+        <main ref={scrollRef} onScroll={handleScroll} className="flex-grow mt-6 overflow-y-auto custom-scrollbar relative">
             <div className="max-w-2xl mx-auto">
                 <div className="flex justify-between items-center mb-4">
                     <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
-                      <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day" disabled={isPrevDisabled}>
-                          <motion.div variants={leftArrowVariants}>
-                            <ChevronLeft />
-                          </motion.div>
+                      <Button variant="outline" size="icon" onClick={() => handleDayNavigation('prev')} aria-label="Previous Day">
+                          <motion.div variants={leftArrowVariants}><ChevronLeft /></motion.div>
                       </Button>
                     </motion.div>
                     <div className="relative h-10 w-64 flex items-center justify-center overflow-hidden">
@@ -240,10 +223,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                         <motion.h2
                           key={centerDate.toISOString()}
                           className="text-2xl font-bold text-center cursor-pointer hover:underline"
-                          onClick={() => {
-                            setSlideDirection(0);
-                            setCenterDate(startOfDay(new Date()))
-                          }}
+                          onClick={() => { setSlideDirection(0); setCenterDate(startOfDay(new Date())) }}
                           title="Go to Today"
                           initial={{ opacity: 0, x: slideDirection * 40 }}
                           animate={{ opacity: 1, x: 0 }}
@@ -256,9 +236,7 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                     </div>
                     <motion.div initial="rest" whileHover="hover" whileTap="tap" variants={navButtonVariants}>
                       <Button variant="outline" size="icon" onClick={() => handleDayNavigation('next')} aria-label="Next Day">
-                           <motion.div variants={rightArrowVariants}>
-                            <ChevronRight />
-                          </motion.div>
+                           <motion.div variants={rightArrowVariants}><ChevronRight /></motion.div>
                       </Button>
                     </motion.div>
                 </div>
@@ -282,14 +260,8 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                   </motion.div>
                 </AnimatePresence>
               </div>
-               <div
-                  className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out"
-                  style={{ opacity: topGradientOpacity }}
-                />
-                <div
-                  className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out z-10"
-                  style={{ opacity: bottomGradientOpacity }}
-                />
+               <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out" style={{ opacity: topGradientOpacity }} />
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out z-10" style={{ opacity: bottomGradientOpacity }} />
         </main>
 
       <footer className="mt-auto pt-8 z-20">

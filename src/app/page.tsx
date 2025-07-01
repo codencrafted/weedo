@@ -3,59 +3,50 @@
 import { useState, useEffect } from 'react';
 import NamePrompt from '@/components/todo/name-prompt';
 import TodoApp from '@/components/todo/todo-app';
-import InitialTasks from '@/components/todo/initial-tasks';
-import type { Task } from '@/lib/types';
 import { LoadingAnimation } from '@/components/todo/typewriter-animation';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-type View = 'loading' | 'name' | 'tasks' | 'app';
+type View = 'loading' | 'name' | 'app';
 
 export default function Home() {
-  const [name, setName] = useState<string | null>(null);
   const [view, setView] = useState<View>('loading');
-  const [isFirstSession, setIsFirstSession] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const storedName = localStorage.getItem('weedo-name');
-      const tasksInitialized = localStorage.getItem('weedo-tasks-initialized');
-
-      if (storedName) {
-        setName(storedName);
-        if (tasksInitialized) {
-          setView('app');
+    const initializeUser = async () => {
+      try {
+        let id = localStorage.getItem('weedo-user-id');
+        
+        if (id) {
+          const userDoc = await getDoc(doc(db, 'users', id));
+          if (userDoc.exists()) {
+            setUserId(id);
+            setView('app');
+          } else {
+            // Data inconsistency (e.g., cleared DB but not local storage), so we start over.
+            localStorage.removeItem('weedo-user-id');
+            setView('name');
+          }
         } else {
-          setView('tasks');
+          setView('name');
         }
-      } else {
-        setView('name');
+      } catch (error) {
+        console.error("Error initializing user:", error);
+        setView('name'); // Fallback on error
       }
-    } catch (error) {
-      console.error("Could not access local storage", error);
-      setView('name'); // Fallback
-    }
+    };
+
+    initializeUser();
   }, []);
 
-  const handleNameSet = (newName: string) => {
+  const handleNameSet = (newUserId: string) => {
     try {
-      if (newName.trim()) {
-        const trimmedName = newName.trim();
-        localStorage.setItem('weedo-name', trimmedName);
-        setName(trimmedName);
-        setView('tasks');
-      }
-    } catch (error) {
-      console.error("Could not access local storage", error);
-    }
-  };
-
-  const handleTasksSet = (tasks: Task[]) => {
-    try {
-      localStorage.setItem('weedo-tasks', JSON.stringify(tasks));
-      localStorage.setItem('weedo-tasks-initialized', 'true');
-      setIsFirstSession(true);
+      localStorage.setItem('weedo-user-id', newUserId);
+      setUserId(newUserId);
       setView('app');
     } catch (error) {
-      console.error("Could not save tasks to local storage", error);
+      console.error("Could not access local storage for user ID", error);
     }
   };
 
@@ -66,8 +57,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background font-body">
       {view === 'name' && <NamePrompt onNameSet={handleNameSet} />}
-      {view === 'tasks' && name && <InitialTasks name={name} onTasksSet={handleTasksSet} />}
-      {view === 'app' && name && <TodoApp name={name} isFirstSession={isFirstSession} />}
+      {view === 'app' && userId && <TodoApp userId={userId} />}
     </main>
   );
 }

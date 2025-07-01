@@ -16,8 +16,9 @@ import { PopoverRoot, PopoverTrigger, PopoverContent, PopoverForm, PopoverInput,
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import QRCode from 'qrcode.react';
-import { createShareLink } from '@/app/actions/share';
 import { Html5Qrcode } from 'html5-qrcode';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 
 
 const getInitials = (name: string | null): string => {
@@ -34,10 +35,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   
+  const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [openConfirmation, setOpenConfirmation] = useState<string | null>(null);
 
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
@@ -53,22 +54,30 @@ export default function SettingsPage() {
   const scannerContainerId = "qr-scanner-container";
 
   useEffect(() => {
-    try {
-      const storedName = localStorage.getItem('weedo-name');
-      if (storedName) {
-        setName(storedName);
-        setInitials(getInitials(storedName));
-      }
-    } catch (error) {
-      console.error("Could not access local storage", error);
-    } finally {
+    const id = localStorage.getItem('weedo-user-id');
+    if (id) {
+      setUserId(id);
+      const userDocRef = doc(db, 'users', id);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setName(data.name);
+          setInitials(getInitials(data.name));
+        }
         setIsLoading(false);
+      }).catch(error => {
+        console.error("Error fetching user data:", error);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
+      // If no user ID, they should be on the name prompt page
+      router.push('/');
     }
-  }, []);
+  }, [router]);
   
   useEffect(() => {
     if (isQRCodeDialogOpen) {
-      // Resolve CSS variables to actual colors for the QR code library
       try {
         const bgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim();
         const fgStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-foreground').trim();
@@ -90,7 +99,7 @@ export default function SettingsPage() {
     }
 
     const onScanSuccess = (decodedText: string) => {
-        setIsScannerOpen(false); // Close the dialog
+        setIsScannerOpen(false);
         handleImportFromUrl(decodedText);
     };
 
@@ -105,20 +114,12 @@ export default function SettingsPage() {
                 onScanSuccess,
                 () => { /* ignore */ }
             ).catch(() => {
-                toast({
-                    variant: "destructive",
-                    title: "Camera Error",
-                    description: "Could not start camera. Please check permissions.",
-                });
+                toast({ variant: "destructive", title: "Camera Error" });
                 setIsScannerOpen(false);
             });
         }
     }).catch(() => {
-        toast({
-            variant: "destructive",
-            title: "Camera Not Found",
-            description: "No camera found on this device.",
-        });
+        toast({ variant: "destructive", title: "Camera Not Found" });
         setIsScannerOpen(false);
     });
 
@@ -127,161 +128,84 @@ export default function SettingsPage() {
             scannerRef.current.stop().catch(err => console.error("Failed to stop scanner on cleanup", err));
         }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScannerOpen]);
 
-  const handleNameSave = (newName: string) => {
-    if (newName.trim()) {
+  const handleNameSave = async (newName: string) => {
+    if (newName.trim() && userId) {
+      const trimmedName = newName.trim();
       try {
-        const trimmedName = newName.trim();
-        localStorage.setItem('weedo-name', trimmedName);
+        const userDocRef = doc(db, 'users', userId);
+        await updateDoc(userDocRef, { name: trimmedName });
         setName(trimmedName);
         setInitials(getInitials(trimmedName));
-        toast({
-          title: "Name Updated",
-          description: "Your name has been successfully changed.",
-        });
+        toast({ title: "Name Updated" });
       } catch (error) {
-         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not save your name.",
-        })
+         toast({ variant: "destructive", title: "Error Saving Name" });
       }
     }
   };
 
-  const handleUncompleteAll = () => {
+  const handleUncompleteAll = async () => {
+    if (!userId) return;
     try {
-      const storedTasks = localStorage.getItem('weedo-tasks');
-      if (storedTasks) {
-        const tasks: Task[] = JSON.parse(storedTasks);
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const tasks: Task[] = userDoc.data().tasks || [];
         const uncompletedTasks = tasks.map(task => ({ ...task, completed: false }));
-        localStorage.setItem('weedo-tasks', JSON.stringify(uncompletedTasks));
-        toast({
-            title: "Tasks Updated",
-            description: "All tasks have been marked as incomplete.",
-        });
+        await updateDoc(userDocRef, { tasks: uncompletedTasks });
+        toast({ title: "Tasks Updated" });
       }
     } catch (error) {
-      console.error("Could not update tasks", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not update tasks.",
-      })
+      toast({ variant: "destructive", title: "Error Updating Tasks" });
     }
   };
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem('weedo-name');
-      localStorage.removeItem('weedo-tasks');
-      localStorage.removeItem('weedo-tasks-initialized');
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-      });
+      localStorage.removeItem('weedo-user-id');
+      toast({ title: "Logged Out" });
       router.push('/');
     } catch (error) {
-      console.error("Could not access local storage", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not log out.",
-      })
+      toast({ variant: "destructive", title: "Could not log out." });
     }
   };
   
-  const generateShareableData = async () => {
-    setIsGenerating(true);
-    try {
-      const storedName = localStorage.getItem('weedo-name');
-      const storedTasks = localStorage.getItem('weedo-tasks');
-
-      if (!storedName || !storedTasks) {
-        toast({
-          variant: "destructive",
-          title: "Cannot Share",
-          description: "No data found to share.",
-        });
-        return null;
-      }
-
-      const data = {
-        name: storedName,
-        tasks: JSON.parse(storedTasks) as Task[],
-      };
-
-      const result = await createShareLink(data);
-
-      if (result.success && result.id) {
-        const url = `${window.location.origin}/share/${result.id}`;
-        setSyncUrl(url);
-        return url;
-      } else {
-        throw new Error(result.error || 'An unknown error occurred.');
-      }
-    } catch (error: any) {
-      console.error("Failed to generate share link:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Could not generate share link.",
-      });
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
+  const generateSyncUrl = () => {
+    if (!userId) return null;
+    const url = `${window.location.origin}/sync/${userId}`;
+    setSyncUrl(url);
+    return url;
   };
 
-  const handleGenerateLinkClick = async () => {
-    const url = await generateShareableData();
-    if (url) {
-        setIsLinkDialogOpen(true);
-    }
+  const handleGenerateLinkClick = () => {
+    const url = generateSyncUrl();
+    if (url) setIsLinkDialogOpen(true);
   };
 
-  const handleGenerateQRCodeClick = async () => {
-    const url = await generateShareableData();
-    if (url) {
-        setIsQRCodeDialogOpen(true);
-    }
+  const handleGenerateQRCodeClick = () => {
+    const url = generateSyncUrl();
+    if (url) setIsQRCodeDialogOpen(true);
   };
 
   const handleImportFromUrl = (urlToImport: string) => {
-    if (!urlToImport.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Link",
-        description: "The provided link is empty.",
-      });
-      return;
-    }
-
+    if (!urlToImport.trim()) return;
     try {
       const url = new URL(urlToImport);
       const pathParts = url.pathname.split('/');
-      const shareIndex = pathParts.indexOf('share');
+      const syncIndex = pathParts.indexOf('sync');
       
-      if (shareIndex !== -1 && pathParts[shareIndex + 1]) {
-        const id = pathParts[shareIndex + 1];
+      if (syncIndex !== -1 && pathParts[syncIndex + 1]) {
+        const id = pathParts[syncIndex + 1];
         setIsImportDialogOpen(false);
         setImportUrl('');
         setIsScannerOpen(false);
-        router.push(`/share/${id}`);
+        router.push(`/sync/${id}`);
         return;
       }
-      
-      throw new Error("Invalid URL format. Link must contain '/share/[id]'.");
-
+      throw new Error("Invalid URL format.");
     } catch (error) {
-      console.error("Invalid URL provided:", error);
-      toast({
-        variant: "destructive",
-        title: "Invalid Link",
-        description: "The link you provided is not valid. Please check and try again.",
-      });
+      toast({ variant: "destructive", title: "Invalid Link" });
     }
   };
 
@@ -292,7 +216,7 @@ export default function SettingsPage() {
   const handleCopyLink = () => {
     if (!syncUrl) return;
     navigator.clipboard.writeText(syncUrl).then(() => {
-      toast({ title: "Copied!", description: "Share link copied to clipboard." });
+      toast({ title: "Copied!", description: "Sync link copied." });
     });
   };
   
@@ -314,17 +238,8 @@ export default function SettingsPage() {
         <div className="mb-6 self-start">
             <Link href="/" passHref>
               <Button variant="ghost" className="hover:bg-transparent" asChild>
-                <motion.div
-                  className="flex items-center cursor-pointer"
-                  initial="rest"
-                  whileHover="hover"
-                  whileTap={{scale: 0.98}}
-                >
-                  <motion.div
-                    variants={{ hover: { x: -4 }, rest: { x: 0 } }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="mr-2"
-                  >
+                <motion.div className="flex items-center cursor-pointer" initial="rest" whileHover="hover" whileTap={{scale: 0.98}}>
+                  <motion.div variants={{ hover: { x: -4 }, rest: { x: 0 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="mr-2">
                     <ArrowLeft className="h-4 w-4" />
                   </motion.div>
                   <span>Back to Tasks</span>
@@ -355,16 +270,10 @@ export default function SettingsPage() {
                           <PopoverForm onSubmit={handleNameSave}>
                             <div className="flex flex-col h-full bg-card text-card-foreground">
                                 <PopoverHeader>Edit your name</PopoverHeader>
-                                <PopoverBody>
-                                    <PopoverInput placeholder="Enter your new name" />
-                                </PopoverBody>
+                                <PopoverBody><PopoverInput placeholder="Enter your new name" /></PopoverBody>
                                 <PopoverFooter className="bg-transparent border-0 justify-end gap-2 p-3">
-                                  <PopoverCloseButton asChild>
-                                    <Button variant="ghost" type="button">Cancel</Button>
-                                  </PopoverCloseButton>
-                                  <PopoverSubmitButton>
-                                    <Check className="h-4 w-4 mr-2" /> Save
-                                  </PopoverSubmitButton>
+                                  <PopoverCloseButton asChild><Button variant="ghost" type="button">Cancel</Button></PopoverCloseButton>
+                                  <PopoverSubmitButton><Check className="h-4 w-4 mr-2" /> Save</PopoverSubmitButton>
                                 </PopoverFooter>
                               </div>
                           </PopoverForm>
@@ -382,21 +291,12 @@ export default function SettingsPage() {
                     <div>
                         <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'uncomplete' ? null : 'uncomplete')}>
                             <RefreshCw className="mr-3 h-5 w-5" />
-                            <div>
-                                <p>Mark All Incomplete</p>
-                                <p className="text-xs text-muted-foreground font-normal">Reset the completion status of all tasks.</p>
-                            </div>
+                            <div><p>Mark All Incomplete</p><p className="text-xs text-muted-foreground font-normal">Reset all tasks to incomplete.</p></div>
                         </Button>
                         <Expandable expanded={openConfirmation === 'uncomplete'}>
                             <ExpandableContent>
                                <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
-                                  <div className="flex items-start gap-3">
-                                      <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                      <div>
-                                          <p className="font-semibold">Are you sure?</p>
-                                          <p className="text-sm text-muted-foreground mt-1">This will mark all of your tasks as incomplete. This action cannot be undone.</p>
-                                      </div>
-                                  </div>
+                                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/><div><p className="font-semibold">Are you sure?</p><p className="text-sm text-muted-foreground mt-1">This will mark all tasks as incomplete.</p></div></div>
                                   <div className="flex justify-end gap-2 mt-4">
                                       <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
                                       <Button onClick={() => { handleUncompleteAll(); setOpenConfirmation(null); }}>Continue</Button>
@@ -409,21 +309,12 @@ export default function SettingsPage() {
                     <div>
                         <Button variant="ghost" className="w-full justify-start text-left text-base text-destructive p-3 h-auto hover:bg-transparent" onClick={() => setOpenConfirmation(p => p === 'logout' ? null : 'logout')}>
                             <LogOut className="mr-3 h-5 w-5" />
-                            <div>
-                               <p>Logout</p>
-                               <p className="text-xs text-muted-foreground font-normal">This will clear your name and task data.</p>
-                           </div>
+                            <div><p>Logout</p><p className="text-xs text-muted-foreground font-normal">This will clear your local data.</p></div>
                        </Button>
                         <Expandable expanded={openConfirmation === 'logout'}>
                             <ExpandableContent>
                                <motion.div variants={confirmationVariants} initial="hidden" animate="visible" exit="exit" className="rounded-lg border bg-card p-4 mt-2">
-                                  <div className="flex items-start gap-3">
-                                      <AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/>
-                                      <div>
-                                          <p className="font-semibold">Are you sure you want to log out?</p>
-                                          <p className="text-sm text-muted-foreground mt-1">This will permanently delete all your data. This action cannot be undone.</p>
-                                      </div>
-                                  </div>
+                                  <div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 mt-0.5 text-destructive shrink-0"/><div><p className="font-semibold">Are you sure?</p><p className="text-sm text-muted-foreground mt-1">This will log you out on this device.</p></div></div>
                                   <div className="flex justify-end gap-2 mt-4">
                                       <Button variant="ghost" onClick={() => setOpenConfirmation(null)}>Cancel</Button>
                                       <Button variant="destructive" onClick={() => { handleLogout(); setOpenConfirmation(null); }}>Logout</Button>
@@ -440,33 +331,21 @@ export default function SettingsPage() {
             <div className="p-6 pt-2">
                 <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Data Sync</h3>
                 <div className="flex flex-col gap-1">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateLinkClick} disabled={isGenerating}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateLinkClick}>
                         <LinkIcon className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Share via Link</p>
-                            <p className="text-xs text-muted-foreground font-normal">Generate a shareable link.</p>
-                        </div>
+                        <div><p>Sync via Link</p><p className="text-xs text-muted-foreground font-normal">Generate a link to sync another device.</p></div>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateQRCodeClick} disabled={isGenerating}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateQRCodeClick}>
                         <QrCode className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Share via QR Code</p>
-                            <p className="text-xs text-muted-foreground font-normal">Generate a scannable QR code.</p>
-                        </div>
+                        <div><p>Sync via QR Code</p><p className="text-xs text-muted-foreground font-normal">Generate a QR code to sync another device.</p></div>
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
                         <Download className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Import from Link</p>
-                            <p className="text-xs text-muted-foreground font-normal">Import a list from a shared link.</p>
-                        </div>
+                        <div><p>Import from Link</p><p className="text-xs text-muted-foreground font-normal">Sync this device from a link.</p></div>
                     </Button>
                     <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsScannerOpen(true)}>
                         <Camera className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Import via QR Scan</p>
-                            <p className="text-xs text-muted-foreground font-normal">Scan a QR code to import a list.</p>
-                        </div>
+                        <div><p>Import via QR Scan</p><p className="text-xs text-muted-foreground font-normal">Sync this device by scanning a QR code.</p></div>
                     </Button>
                 </div>
             </div>
@@ -476,68 +355,35 @@ export default function SettingsPage() {
       
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
           <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Share via Link</DialogTitle>
-                  <DialogDescription>
-                      Copy and open this link on another device to import your data.
-                  </DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Sync via Link</DialogTitle><DialogDescription>Copy and open this link on another device to sync it.</DialogDescription></DialogHeader>
               <div className="flex items-center space-x-2 pt-4">
                   <Input value={syncUrl} readOnly />
-                  <Button type="button" size="icon" onClick={handleCopyLink}>
-                      <Copy className="h-4 w-4" />
-                       <span className="sr-only">Copy Link</span>
-                  </Button>
+                  <Button type="button" size="icon" onClick={handleCopyLink}><Copy className="h-4 w-4" /><span className="sr-only">Copy Link</span></Button>
               </div>
           </DialogContent>
       </Dialog>
       
       <Dialog open={isQRCodeDialogOpen} onOpenChange={setIsQRCodeDialogOpen}>
           <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Share via QR Code</DialogTitle>
-                  <DialogDescription>
-                      Scan this QR code on another device to import your data.
-                  </DialogDescription>
-              </DialogHeader>
-              <div className="flex justify-center py-4">
-                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}
-              </div>
+              <DialogHeader><DialogTitle>Sync via QR Code</DialogTitle><DialogDescription>Scan this QR code on another device to sync it.</DialogDescription></DialogHeader>
+              <div className="flex justify-center py-4">{syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}</div>
           </DialogContent>
       </Dialog>
 
       <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
           <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Import from Link</DialogTitle>
-                  <DialogDescription>
-                      Paste a share link below to import the task list. This will overwrite your current data.
-                  </DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Import from Link</DialogTitle><DialogDescription>Paste a sync link below to connect to another list.</DialogDescription></DialogHeader>
               <div className="flex items-center space-x-2 pt-4">
-                  <Input
-                    placeholder="https://..."
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                  />
-                  <Button type="button" onClick={handleManualImport}>
-                      Import
-                  </Button>
+                  <Input placeholder="https://..." value={importUrl} onChange={(e) => setImportUrl(e.target.value)} />
+                  <Button type="button" onClick={handleManualImport}>Import</Button>
               </div>
           </DialogContent>
       </Dialog>
       
       <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Scan QR Code</DialogTitle>
-                <DialogDescription>
-                    Point your camera at a Weedo QR code to import a list.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="mt-4 p-4 border rounded-lg bg-muted aspect-square flex items-center justify-center">
-              <div id={scannerContainerId} className="w-full h-full"></div>
-            </div>
+            <DialogHeader><DialogTitle>Scan QR Code</DialogTitle><DialogDescription>Point your camera at a Weedo QR code to sync.</DialogDescription></DialogHeader>
+            <div className="mt-4 p-4 border rounded-lg bg-muted aspect-square flex items-center justify-center"><div id={scannerContainerId} className="w-full h-full"></div></div>
         </DialogContent>
       </Dialog>
 
