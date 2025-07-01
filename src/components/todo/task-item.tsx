@@ -5,8 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { motion, AnimatePresence, useDragControls, Reorder } from 'framer-motion';
-import { Settings2, X, GripVertical } from 'lucide-react';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { Settings2, X } from 'lucide-react';
 
 type TaskItemProps = {
   task: Task;
@@ -28,7 +28,6 @@ export default function TaskItem({
   isPast
 }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
-  const dragControls = useDragControls();
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -52,13 +51,12 @@ export default function TaskItem({
     <Reorder.Item
       value={task}
       id={task.id}
-      dragListener={false}
-      dragControls={dragControls}
       layout
       whileHover={{ y: -3, scale: 1.015 }}
+      whileDrag={{ scale: 1.03, boxShadow: '0px 4px 15px rgba(0,0,0,0.1)' }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
         task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
       )}
@@ -70,16 +68,7 @@ export default function TaskItem({
         onAnimationComplete={() => setIsShaking(false)}
         className="p-3"
       >
-        <div className="flex items-center gap-1">
-           <div
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                dragControls.start(e);
-              }}
-              className="cursor-grab p-2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-            >
-              <GripVertical className="h-5 w-5" />
-            </div>
+        <div className="flex items-center gap-3">
           <div onClick={handleCheckboxClick} className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}>
             <Checkbox
               id={`task-${task.id}`}
@@ -120,7 +109,7 @@ export default function TaskItem({
               transition={{ type: 'spring', stiffness: 500, damping: 30, bounce: 0.5 }}
               className="overflow-hidden"
             >
-              <div className="pl-12 pr-2 pb-1">
+              <div className="pl-10 pr-2 pb-1">
                 <label className="text-xs font-medium text-muted-foreground ml-1">Notes</label>
                 <Textarea
                   value={task.description || ''}
