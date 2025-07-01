@@ -48,10 +48,12 @@ export default function TaskItem({
   };
 
   return (
-    <motion.li
+    <motion.div
       layout
+      whileHover={{ y: -3, scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
       className={cn(
-        "bg-card rounded-lg border transition-all duration-300",
+        "bg-card rounded-lg border mb-3 transition-[shadow,border-color,opacity] duration-300",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
         task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
       )}
@@ -118,6 +120,6 @@ export default function TaskItem({
           )}
         </AnimatePresence>
       </motion.div>
-    </motion.li>
+    </motion.div>
   );
 }
