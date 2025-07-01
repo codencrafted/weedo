@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import NamePrompt from '@/components/todo/name-prompt';
 import TodoApp from '@/components/todo/todo-app';
 import { LoadingAnimation } from '@/components/todo/typewriter-animation';
@@ -12,6 +13,7 @@ type View = 'loading' | 'name' | 'app';
 export default function Home() {
   const [view, setView] = useState<View>('loading');
   const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -43,8 +45,7 @@ export default function Home() {
   const handleNameSet = (newUserId: string) => {
     try {
       localStorage.setItem('weedo-user-id', newUserId);
-      setUserId(newUserId);
-      setView('app');
+      router.push('/initialize');
     } catch (error) {
       console.error("Could not access local storage for user ID", error);
     }

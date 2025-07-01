@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, Plus, X, ListTodo } from 'lucide-react';
+import { ArrowRight, Plus, X, ListTodo } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -87,14 +87,14 @@ export default function InitializePage() {
       className="flex flex-col items-center justify-center min-h-screen bg-background p-4"
     >
       <div className="w-full max-w-2xl">
-        <div className="mb-6 self-start">
-          <Link href="/settings" passHref>
-            <Button variant="ghost" className="hover:bg-transparent" asChild>
+        <div className="mb-6 flex w-full justify-end">
+          <Link href="/" passHref>
+            <Button variant="link" asChild>
               <motion.div className="flex items-center cursor-pointer" initial="rest" whileHover="hover" whileTap={{scale: 0.98}}>
-                <motion.div variants={{ hover: { x: -4 }, rest: { x: 0 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="mr-2">
-                  <ArrowLeft className="h-4 w-4" />
+                <span>Finish Setup & Start</span>
+                <motion.div variants={{ hover: { x: 4 }, rest: { x: 0 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} className="ml-2">
+                  <ArrowRight className="h-4 w-4" />
                 </motion.div>
-                <span>Back to Settings</span>
               </motion.div>
             </Button>
           </Link>
@@ -102,8 +102,8 @@ export default function InitializePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Daily Tasks</CardTitle>
-            <CardDescription>Set up tasks that will automatically appear every day.</CardDescription>
+            <CardTitle>Daily Tasks (Optional)</CardTitle>
+            <CardDescription>Set up tasks that will automatically appear every day. You can skip this for now and change it later in settings.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 mb-6">
