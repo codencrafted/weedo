@@ -49,6 +49,12 @@ export default function TaskItem({
     initial: { rotate: 0, x: 0 }
   };
 
+  const taskVariants = {
+    initial: { opacity: 0, y: 25 },
+    inView: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
+    completed: { opacity: 0.6, y: 4, scale: 0.98, filter: 'blur(0.5px)' },
+  };
+
   return (
     <Reorder.Item
       ref={ref}
@@ -57,13 +63,15 @@ export default function TaskItem({
       layout
       whileHover={{ y: -3, scale: 1.015 }}
       whileDrag={{ scale: 1.03, boxShadow: '0px 4px 15px rgba(0,0,0,0.1)' }}
-      initial={{ opacity: 0, y: 25 }}
-      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 25 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      
+      variants={taskVariants}
+      initial="initial"
+      animate={!isInView ? "initial" : task.completed ? "completed" : "inView"}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color] duration-300 cursor-grab",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
-        task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
       )}
     >
       <motion.div
