@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, Share2, QrCode, Copy } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Camera } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -57,10 +57,10 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [openConfirmation, setOpenConfirmation] = useState<string | null>(null);
 
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [syncUrl, setSyncUrl] = useState('');
-  const [isDataTooLongForQR, setIsDataTooLongForQR] = useState(false);
   const [dataToImport, setDataToImport] = useState<SyncData | null>(null);
   const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -219,9 +219,9 @@ export default function SettingsPage() {
       })
     }
   };
-
-  const handleGenerateSyncLink = () => {
-    try {
+  
+  const generateSyncUrl = (): string | null => {
+     try {
       const storedName = localStorage.getItem('weedo-name');
       const storedTasks = localStorage.getItem('weedo-tasks');
       if (!storedName || !storedTasks) {
@@ -230,33 +230,49 @@ export default function SettingsPage() {
           title: "Cannot Sync",
           description: "No data found to sync.",
         });
-        return;
+        return null;
       }
       const data: SyncData = {
         name: storedName,
         tasks: JSON.parse(storedTasks),
       };
       const encodedData = btoa(JSON.stringify(data));
-      const url = `${window.location.origin}/settings?syncData=${encodedData}`;
-      
-      const QR_CODE_MAX_LENGTH = 2000;
-      if (url.length > QR_CODE_MAX_LENGTH) {
-        setIsDataTooLongForQR(true);
-      } else {
-        setIsDataTooLongForQR(false);
-      }
-
-      setSyncUrl(url);
-      setIsExportDialogOpen(true);
+      return `${window.location.origin}/settings?syncData=${encodedData}`;
     } catch (error) {
        toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not generate sync link.",
+        description: "Could not generate sync data.",
       });
+      return null;
+    }
+  }
+
+  const handleGenerateLinkClick = () => {
+    const url = generateSyncUrl();
+    if (url) {
+        setSyncUrl(url);
+        setIsLinkDialogOpen(true);
     }
   };
-  
+
+  const handleGenerateQRCodeClick = () => {
+    const url = generateSyncUrl();
+    if (url) {
+        const QR_CODE_MAX_LENGTH = 2000;
+        if (url.length > QR_CODE_MAX_LENGTH) {
+            toast({
+                variant: "destructive",
+                title: "Data Too Large",
+                description: "Your task list is too large for a QR code. Please use the link option instead.",
+            });
+        } else {
+            setSyncUrl(url);
+            setIsQRCodeDialogOpen(true);
+        }
+    }
+  };
+
   const handleCopyLink = () => {
     if (!syncUrl) return;
     navigator.clipboard.writeText(syncUrl).then(() => {
@@ -430,18 +446,26 @@ export default function SettingsPage() {
             <div className="p-6 pt-2">
                 <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Data Sync</h3>
                 <div className="flex flex-col gap-1">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateSyncLink}>
-                        <Share2 className="mr-3 h-5 w-5" />
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateLinkClick}>
+                        <LinkIcon className="mr-3 h-5 w-5" />
                         <div>
-                            <p>Sync from This Device</p>
-                            <p className="text-xs text-muted-foreground font-normal">Generate a QR code or link to export your data.</p>
+                            <p>Generate Sync Link</p>
+                            <p className="text-xs text-muted-foreground font-normal">Export your data via a shareable link.</p>
                         </div>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateQRCodeClick}>
                         <QrCode className="mr-3 h-5 w-5" />
                         <div>
-                            <p>Sync to This Device</p>
-                            <p className="text-xs text-muted-foreground font-normal">Import data by scanning a QR code.</p>
+                            <p>Generate Sync QR Code</p>
+                            <p className="text-xs text-muted-foreground font-normal">Export via a scannable QR code.</p>
+                        </div>
+                    </Button>
+                     <Separator className="my-2"/>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
+                        <Camera className="mr-3 h-5 w-5" />
+                        <div>
+                            <p>Import From Another Device</p>
+                            <p className="text-xs text-muted-foreground font-normal">Scan a QR code to import data.</p>
                         </div>
                     </Button>
                 </div>
@@ -450,27 +474,34 @@ export default function SettingsPage() {
         </div>
       </div>
       
-      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>Sync From This Device</DialogTitle>
+                  <DialogTitle>Sync via Link</DialogTitle>
                   <DialogDescription>
-                      {isDataTooLongForQR
-                        ? "Your data is too large for a QR Code. Please copy and use the link below to sync."
-                        : "Scan the QR code or copy the link on your new device to transfer your data."}
+                      Copy and open this link on your other device to transfer your data.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center space-x-2 pt-4">
+                  <Input value={syncUrl} readOnly />
+                  <Button type="button" size="icon" onClick={handleCopyLink}>
+                      <Copy className="h-4 w-4" />
+                       <span className="sr-only">Copy Link</span>
+                  </Button>
+              </div>
+          </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isQRCodeDialogOpen} onOpenChange={setIsQRCodeDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Sync via QR Code</DialogTitle>
+                  <DialogDescription>
+                      Scan this QR code on your new device to transfer your data.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center py-4">
-                  {isDataTooLongForQR ? (
-                    <div className="text-center p-8 bg-muted rounded-lg flex flex-col items-center gap-4">
-                      <AlertTriangle className="h-10 w-10 text-destructive" />
-                      <p className="text-sm font-medium text-muted-foreground">
-                        QR Code not available due to large data size.
-                      </p>
-                    </div>
-                  ) : (
-                    syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />
-                  )}
+                  {syncUrl && <QRCode value={syncUrl} size={256} bgColor="var(--background)" fgColor="var(--foreground)" />}
               </div>
               <div className="flex items-center space-x-2">
                   <Input value={syncUrl} readOnly />
@@ -512,4 +543,3 @@ export default function SettingsPage() {
     </motion.div>
   );
 }
-
