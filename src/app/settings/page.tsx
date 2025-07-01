@@ -1,10 +1,9 @@
-
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon, Camera } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LogOut, AlertTriangle, Check, QrCode, Copy, Link as LinkIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,24 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import type { Task } from '@/lib/types';
 import { Expandable, ExpandableContent } from '@/components/ui/expandable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import {
-  PopoverRoot,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverForm,
-  PopoverInput,
-  PopoverFooter,
-  PopoverCloseButton,
-  PopoverSubmitButton,
-  PopoverHeader,
-  PopoverBody,
-} from "@/components/ui/popover-animated";
+import { PopoverRoot, PopoverTrigger, PopoverContent, PopoverForm, PopoverInput, PopoverFooter, PopoverCloseButton, PopoverSubmitButton, PopoverHeader, PopoverBody } from "@/components/ui/popover-animated";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Html5Qrcode } from 'html5-qrcode';
 import QRCode from 'qrcode.react';
-import { deflate, inflate } from 'pako';
+import { createShareLink } from '@/app/actions/share';
 
 
 const getInitials = (name: string | null): string => {
@@ -43,42 +29,21 @@ const getInitials = (name: string | null): string => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
-type SyncData = {
-  name: string;
-  tasks: Task[];
-};
-
-const parseSyncData = (syncDataRaw: string, version: string | null): SyncData => {
-    if (version === 'pako') {
-      const binaryString = atob(syncDataRaw);
-      const charData = binaryString.split('').map((c) => c.charCodeAt(0));
-      const compressedData = new Uint8Array(charData);
-      const decompressedString = inflate(compressedData, { to: 'string' });
-      return JSON.parse(decompressedString);
-    }
-    const decodedString = atob(syncDataRaw);
-    return JSON.parse(decodedString);
-}
-
-
 export default function SettingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [name, setName] = useState<string | null>(null);
   const [initials, setInitials] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [openConfirmation, setOpenConfirmation] = useState<string | null>(null);
 
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [isQRCodeDialogOpen, setIsQRCodeDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [syncUrl, setSyncUrl] = useState('');
   const [qrBgColor, setQrBgColor] = useState('#FFFFFF');
   const [qrFgColor, setQrFgColor] = useState('#09090b');
-  const [dataToImport, setDataToImport] = useState<SyncData | null>(null);
-  const qrScannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
     try {
@@ -93,31 +58,7 @@ export default function SettingsPage() {
         setIsLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    const syncDataRaw = searchParams.get('syncData');
-    const version = searchParams.get('v');
-    if (syncDataRaw) {
-      try {
-        const parsedData = parseSyncData(syncDataRaw, version);
-        if (parsedData.name && Array.isArray(parsedData.tasks)) {
-          setDataToImport(parsedData);
-        } else {
-          throw new Error("Invalid sync data structure.");
-        }
-      } catch (error) {
-        console.error("Failed to parse sync data:", error);
-        toast({
-          variant: "destructive",
-          title: "Sync Failed",
-          description: "The sync link is invalid or corrupted.",
-        });
-      } finally {
-        router.replace('/settings', { scroll: false });
-      }
-    }
-  }, [searchParams, router, toast]);
-
+  
   useEffect(() => {
     if (isQRCodeDialogOpen) {
       // Resolve CSS variables to actual colors for the QR code library
@@ -128,67 +69,9 @@ export default function SettingsPage() {
         setQrFgColor(`hsl(${fgStyle})`);
       } catch (e) {
         console.error("Could not compute QR colors", e);
-        // Fallback colors are already set in useState
       }
     }
   }, [isQRCodeDialogOpen]);
-
-  useEffect(() => {
-    if (isImportDialogOpen) {
-      const qrScanner = new Html5Qrcode('qr-code-reader');
-      qrScannerRef.current = qrScanner;
-
-      const startScanner = async () => {
-        try {
-          await qrScanner.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            (decodedText) => {
-              stopScanner();
-              try {
-                const url = new URL(decodedText);
-                const syncDataRaw = url.searchParams.get('syncData');
-                const version = url.searchParams.get('v');
-                if (!syncDataRaw) throw new Error("No sync data in QR code.");
-                
-                const parsedData = parseSyncData(syncDataRaw, version);
-
-                 if (parsedData.name && Array.isArray(parsedData.tasks)) {
-                   setDataToImport(parsedData);
-                   setIsImportDialogOpen(false);
-                 } else {
-                   throw new Error("Invalid sync data structure in QR code.");
-                 }
-              } catch (err) {
-                 toast({
-                    variant: "destructive",
-                    title: "Invalid QR Code",
-                    description: "The scanned QR code does not contain valid sync data.",
-                 });
-              }
-            },
-            () => {}
-          );
-        } catch (err) {
-          toast({
-            variant: "destructive",
-            title: "Scanner Error",
-            description: "Could not start scanner. Please check camera permissions.",
-          });
-          setIsImportDialogOpen(false);
-        }
-      };
-
-      const stopScanner = () => {
-        if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-          qrScannerRef.current.stop().catch(console.error);
-        }
-      };
-
-      startScanner();
-      return () => stopScanner();
-    }
-  }, [isImportDialogOpen, toast]);
 
   const handleNameSave = (newName: string) => {
     if (newName.trim()) {
@@ -253,91 +136,67 @@ export default function SettingsPage() {
     }
   };
   
-  const generateSyncUrl = (): string | null => {
-     try {
+  const generateShareableData = async () => {
+    setIsGenerating(true);
+    try {
       const storedName = localStorage.getItem('weedo-name');
       const storedTasks = localStorage.getItem('weedo-tasks');
+
       if (!storedName || !storedTasks) {
         toast({
           variant: "destructive",
-          title: "Cannot Sync",
-          description: "No data found to sync.",
+          title: "Cannot Share",
+          description: "No data found to share.",
         });
         return null;
       }
-      const data: SyncData = {
+
+      const data = {
         name: storedName,
-        tasks: JSON.parse(storedTasks),
+        tasks: JSON.parse(storedTasks) as Task[],
       };
-      
-      const jsonString = JSON.stringify(data);
-      const compressed = deflate(jsonString);
-      const binaryString = String.fromCharCode.apply(null, Array.from(compressed));
-      const encodedData = btoa(binaryString);
-      
-      return `${window.location.origin}/settings?syncData=${encodedData}&v=pako`;
-    } catch (error) {
-       toast({
+
+      const result = await createShareLink(data);
+
+      if (result.success && result.id) {
+        const url = `${window.location.origin}/share/${result.id}`;
+        setSyncUrl(url);
+        return url;
+      } else {
+        throw new Error(result.error || 'An unknown error occurred.');
+      }
+    } catch (error: any) {
+      console.error("Failed to generate share link:", error);
+      toast({
         variant: "destructive",
         title: "Error",
-        description: "Could not generate sync data.",
+        description: error.message || "Could not generate share link.",
       });
       return null;
+    } finally {
+      setIsGenerating(false);
     }
-  }
+  };
 
-  const handleGenerateLinkClick = () => {
-    const url = generateSyncUrl();
+  const handleGenerateLinkClick = async () => {
+    const url = await generateShareableData();
     if (url) {
-        setSyncUrl(url);
         setIsLinkDialogOpen(true);
     }
   };
 
-  const handleGenerateQRCodeClick = () => {
-    const url = generateSyncUrl();
+  const handleGenerateQRCodeClick = async () => {
+    const url = await generateShareableData();
     if (url) {
-        const QR_CODE_MAX_LENGTH = 2000;
-        if (url.length > QR_CODE_MAX_LENGTH) {
-            toast({
-                variant: "destructive",
-                title: "Data Too Large",
-                description: "Your task list is too large for a QR code. Please use the link option instead.",
-            });
-        } else {
-            setSyncUrl(url);
-            setIsQRCodeDialogOpen(true);
-        }
+        setIsQRCodeDialogOpen(true);
     }
   };
 
   const handleCopyLink = () => {
     if (!syncUrl) return;
     navigator.clipboard.writeText(syncUrl).then(() => {
-      toast({ title: "Copied!", description: "Sync link copied to clipboard." });
+      toast({ title: "Copied!", description: "Share link copied to clipboard." });
     });
-  };
-
-  const handleConfirmImport = () => {
-    if (!dataToImport) return;
-    try {
-      localStorage.setItem('weedo-name', dataToImport.name);
-      localStorage.setItem('weedo-tasks', JSON.stringify(dataToImport.tasks));
-      localStorage.setItem('weedo-tasks-initialized', 'true');
-      toast({
-        title: "Sync Complete!",
-        description: "Your data has been imported successfully.",
-      });
-      setDataToImport(null);
-      router.push('/');
-    } catch (e) {
-      toast({
-        variant: 'destructive',
-        title: 'Import Failed',
-        description: 'Could not save the imported data.',
-      });
-       setDataToImport(null);
-    }
   };
   
   const confirmationVariants = {
@@ -484,26 +343,18 @@ export default function SettingsPage() {
             <div className="p-6 pt-2">
                 <h3 className="text-sm font-medium text-muted-foreground mb-1 px-3">Data Sync</h3>
                 <div className="flex flex-col gap-1">
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateLinkClick}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateLinkClick} disabled={isGenerating}>
                         <LinkIcon className="mr-3 h-5 w-5" />
                         <div>
-                            <p>Generate Sync Link</p>
-                            <p className="text-xs text-muted-foreground font-normal">Export your data via a shareable link.</p>
+                            <p>Share via Link</p>
+                            <p className="text-xs text-muted-foreground font-normal">Generate a shareable link.</p>
                         </div>
                     </Button>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateQRCodeClick}>
+                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={handleGenerateQRCodeClick} disabled={isGenerating}>
                         <QrCode className="mr-3 h-5 w-5" />
                         <div>
-                            <p>Generate Sync QR Code</p>
-                            <p className="text-xs text-muted-foreground font-normal">Export via a scannable QR code.</p>
-                        </div>
-                    </Button>
-                     <Separator className="my-2"/>
-                    <Button variant="ghost" className="w-full justify-start text-left text-base p-3 h-auto hover:bg-transparent" onClick={() => setIsImportDialogOpen(true)}>
-                        <Camera className="mr-3 h-5 w-5" />
-                        <div>
-                            <p>Import From Another Device</p>
-                            <p className="text-xs text-muted-foreground font-normal">Scan a QR code to import data.</p>
+                            <p>Share via QR Code</p>
+                            <p className="text-xs text-muted-foreground font-normal">Generate a scannable QR code.</p>
                         </div>
                     </Button>
                 </div>
@@ -515,9 +366,9 @@ export default function SettingsPage() {
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>Sync via Link</DialogTitle>
+                  <DialogTitle>Share via Link</DialogTitle>
                   <DialogDescription>
-                      Copy and open this link on your other device to transfer your data.
+                      Copy and open this link on another device to import your data.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex items-center space-x-2 pt-4">
@@ -533,50 +384,16 @@ export default function SettingsPage() {
       <Dialog open={isQRCodeDialogOpen} onOpenChange={setIsQRCodeDialogOpen}>
           <DialogContent>
               <DialogHeader>
-                  <DialogTitle>Sync via QR Code</DialogTitle>
+                  <DialogTitle>Share via QR Code</DialogTitle>
                   <DialogDescription>
-                      Scan this QR code on your new device to transfer your data.
+                      Scan this QR code on another device to import your data.
                   </DialogDescription>
               </DialogHeader>
               <div className="flex justify-center py-4">
                   {syncUrl && <QRCode value={syncUrl} size={256} bgColor={qrBgColor} fgColor={qrFgColor} />}
               </div>
-              <div className="flex items-center space-x-2">
-                  <Input value={syncUrl} readOnly />
-                  <Button type="button" size="icon" onClick={handleCopyLink}>
-                      <Copy className="h-4 w-4" />
-                       <span className="sr-only">Copy Link</span>
-                  </Button>
-              </div>
           </DialogContent>
       </Dialog>
-
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-          <DialogContent>
-              <DialogHeader>
-                  <DialogTitle>Sync To This Device</DialogTitle>
-                  <DialogDescription>
-                      Point your camera at the QR code from your other device.
-                  </DialogDescription>
-              </DialogHeader>
-              <div id="qr-code-reader" className="w-full aspect-square rounded-md bg-muted mt-4 border" />
-          </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!dataToImport} onOpenChange={(open) => !open && setDataToImport(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Confirm Data Import</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      You are about to import tasks for "{dataToImport?.name}". This will overwrite all current data on this device. This action cannot be undone.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDataToImport(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleConfirmImport}>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
 
     </motion.div>
   );
