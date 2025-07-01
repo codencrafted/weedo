@@ -49,10 +49,9 @@ export default function TaskItem({
     initial: { rotate: 0, x: 0 }
   };
 
-  const taskVariants = {
-    initial: { opacity: 0, scale: 0.85 },
-    inView: { opacity: 1, scale: 1 },
-    completed: { opacity: 0.5, scale: 0.95 },
+  const itemVariants = {
+    initial: { opacity: 0, scale: 0.9 },
+    inView: { opacity: 1, scale: 1, transition: { type: 'spring', duration: 0.4 } },
   };
 
   return (
@@ -61,28 +60,31 @@ export default function TaskItem({
       value={task}
       id={task.id}
       layout
-      whileHover={{ y: -3, scale: 1.015 }}
-      whileDrag={{ scale: 1.03, boxShadow: '0px 4px 15px rgba(0,0,0,0.1)' }}
-      
-      variants={taskVariants}
+      whileDrag={{ scale: 1.05, boxShadow: '0px 5px 15px rgba(0,0,0,0.1)' }}
+      variants={itemVariants}
       initial="initial"
-      animate={!isInView ? "initial" : "inView"}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-
+      animate={isInView ? 'inView' : 'initial'}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 400, damping: 40 }}
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color] duration-300",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color,opacity] duration-300 cursor-grab",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
-        "cursor-grab"
+        task.completed && !isOpen ? 'opacity-60' : 'opacity-100',
       )}
     >
       <motion.div
+        layout="position"
         variants={shakeVariants}
         animate={isShaking ? "shake" : "initial"}
         onAnimationComplete={() => setIsShaking(false)}
         className="p-3"
       >
         <div className="flex items-center gap-3">
-          <div onClick={handleCheckboxClick} className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}>
+          <div
+            onPointerDown={(e) => { e.stopPropagation(); }}
+            onClick={handleCheckboxClick}
+            className={cn((isFuture || isPast) ? 'cursor-not-allowed' : 'cursor-pointer p-1')}
+          >
             <Checkbox
               id={`task-${task.id}`}
               checked={task.completed}
@@ -90,7 +92,7 @@ export default function TaskItem({
               aria-label={`Mark task "${task.text}" as ${task.completed ? 'not completed' : 'completed'}`}
             />
           </div>
-          <label
+          <div
             onClick={() => onToggleOpen(isOpen ? null : task.id)}
             className={cn(
               "flex-grow text-lg transition-colors duration-300 cursor-pointer",
@@ -98,11 +100,12 @@ export default function TaskItem({
             )}
           >
             {task.text}
-          </label>
+          </div>
           <motion.button
             layout
+            onPointerDown={(e) => { e.stopPropagation(); }}
             onClick={() => onToggleOpen(isOpen ? null : task.id)}
-            className="p-1.5 rounded-md hover:bg-accent"
+            className="p-1.5 rounded-md hover:bg-accent cursor-pointer"
           >
             {isOpen ? (
               <X className="h-5 w-5 text-muted-foreground" />
@@ -121,6 +124,7 @@ export default function TaskItem({
               exit={{ opacity: 0, height: 0, filter: "blur(4px)", marginTop: 0 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30, bounce: 0.5 }}
               className="overflow-hidden"
+              onPointerDown={(e) => e.stopPropagation()}
             >
               <div className="pl-10 pr-2 pb-1">
                 <label className="text-xs font-medium text-muted-foreground ml-1">Notes</label>
@@ -129,7 +133,6 @@ export default function TaskItem({
                   onChange={(e) => onUpdateDescription(task.id, e.target.value)}
                   placeholder="Add some notes..."
                   className="mt-1 text-base border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 shadow-none bg-muted/50"
-                  onClick={(e) => e.stopPropagation()} // Prevent card from closing when clicking textarea
                 />
               </div>
             </motion.div>
