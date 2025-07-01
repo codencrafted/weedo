@@ -34,14 +34,16 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   const [slideDirection, setSlideDirection] = useState(0);
 
   const scrollRef = useRef<HTMLElement>(null);
-  const [showTopGradient, setShowTopGradient] = useState(false);
-  const [showBottomGradient, setShowBottomGradient] = useState(true);
+  const [topGradientOpacity, setTopGradientOpacity] = useState(0);
+  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    setShowTopGradient(scrollTop > 50);
+    setTopGradientOpacity(Math.min(scrollTop / 50, 1));
     const bottomDistance = scrollHeight - (scrollTop + clientHeight);
-    setShowBottomGradient(bottomDistance > 50);
+    setBottomGradientOpacity(
+      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
+    );
   };
 
   useEffect(() => {
@@ -73,13 +75,15 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
   useEffect(() => {
     const checkScroll = () => {
       if (scrollRef.current) {
-        const { scrollHeight, clientHeight } = scrollRef.current;
-        setShowBottomGradient(scrollHeight > clientHeight);
-        setShowTopGradient(scrollRef.current.scrollTop > 50)
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        setTopGradientOpacity(Math.min(scrollTop / 50, 1));
+        const bottomDistance = scrollHeight - (scrollTop + clientHeight);
+        setBottomGradientOpacity(
+          scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
+        );
       }
     };
-    checkScroll();
-    const timer = setTimeout(checkScroll, 500);
+    const timer = setTimeout(checkScroll, 100);
     return () => clearTimeout(timer);
   }, [isLoading, centerDate, tasks]);
 
@@ -262,12 +266,12 @@ export default function TodoApp({ name, isFirstSession = false }: TodoAppProps) 
                 </AnimatePresence>
               </div>
                <div
-                  className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none transition-opacity"
-                  style={{ opacity: showTopGradient ? 1 : 0 }}
+                  className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out"
+                  style={{ opacity: topGradientOpacity }}
                 />
                 <div
-                  className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none transition-opacity z-10"
-                  style={{ opacity: showBottomGradient ? 1 : 0 }}
+                  className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent pointer-events-none transition-opacity duration-300 ease-in-out z-10"
+                  style={{ opacity: bottomGradientOpacity }}
                 />
         </main>
 

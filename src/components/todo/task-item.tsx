@@ -29,7 +29,7 @@ export default function TaskItem({
 }: TaskItemProps) {
   const [isShaking, setIsShaking] = useState(false);
   const ref = useRef<HTMLLIElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
+  const isInView = useInView(ref, { once: false, amount: 0.5 });
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -50,9 +50,9 @@ export default function TaskItem({
   };
 
   const taskVariants = {
-    initial: { opacity: 0, y: 25 },
-    inView: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' },
-    completed: { opacity: 0.6, y: 4, scale: 0.98, filter: 'blur(0.5px)' },
+    initial: { opacity: 0, scale: 0.85 },
+    inView: { opacity: 1, scale: 1 },
+    completed: { opacity: 0.5, scale: 0.95 },
   };
 
   return (
@@ -67,11 +67,12 @@ export default function TaskItem({
       variants={taskVariants}
       initial="initial"
       animate={!isInView ? "initial" : task.completed ? "completed" : "inView"}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
 
       className={cn(
-        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color] duration-300 cursor-grab",
+        "bg-card rounded-lg border list-none mb-3 transition-[shadow,border-color] duration-300",
         isOpen ? "border-primary/40 shadow-lg" : "border-border shadow-sm hover:border-primary/20",
+        "cursor-grab"
       )}
     >
       <motion.div
